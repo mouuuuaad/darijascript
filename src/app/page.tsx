@@ -11,19 +11,20 @@ import {
   useEffect,
   useCallback,
 } from 'react';
-import { ResizablePanel, ResizablePanelGroup, ResizableHandle } from '@/components/ui/resizable'; // Import from ShadCN UI
+import { ResizablePanel, ResizablePanelGroup, ResizableHandle } from '@/components/ui/resizable'; // Use ShadCN UI components directly
 import { DarijaDocs } from '@/components/docs/darija-docs';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
 import { interpret } from '@/lib/darijascript/interpreter';
 import { setupDarijaScriptLanguage } from '@/lib/darijascript/monaco-config';
 import { AlgorithmsSidebar } from '@/components/ide/algorithms-sidebar';
+import { WelcomeOverlay } from '@/components/welcome/welcome-overlay'; // Import the WelcomeOverlay
 import { gsap } from 'gsap';
 
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'; // Import DialogContent
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'; // Import SheetContent, SheetTrigger
-import { Brain, BookOpen, Play, Save, Check, Loader } from 'lucide-react'; // Import icons, add Loader
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Brain, BookOpen, Play, Save, Check, Loader } from 'lucide-react';
 
 const initialCode = `
 // Salam! Ktbo l code dyalkom hna
@@ -38,6 +39,10 @@ tbe3("Array after pop: " + arr);
 bdl first = arr.7yedmnlwla(); // Shift
 tbe3("First element shifted: " + first);
 tbe3("Array after shift: " + arr);
+
+bdl obj = { name: "Moha", age: 30 };
+tbe3("Object keys: " + mfatih(obj));
+tbe3("Object values: " + qiyam(obj));
 
 `;
 
@@ -61,22 +66,35 @@ const HomePage: FunctionComponent<HomePageProps> = ({}) => {
   const [algorithmsSidebarOpen, setAlgorithmsSidebarOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false); // State for welcome overlay
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
-  const monacoRef = useRef<monacoEditor.editor.IStandaloneCodeEditor | null>(null); // useRef for Monaco editor instance
-  const editorContainerRef = useRef<HTMLDivElement | null>(null); // Ref for editor container
+  const monacoRef = useRef<monacoEditor.editor.IStandaloneCodeEditor | null>(null);
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
 
   // GSAP Animation Refs
-   const titleRef = useRef(null);
-   const editorSectionRef = useRef(null); // Ref for the entire editor/output section
+  const titleRef = useRef(null);
+  const editorSectionRef = useRef(null); // Ref for the entire editor/output section
 
+  useEffect(() => {
+     // Check localStorage for first visit
+     const hasVisited = localStorage.getItem('hasSeenWelcomeOverlay');
+     if (!hasVisited) {
+       setShowWelcome(true);
+     }
 
-   useEffect(() => {
      // Simple GSAP fade-in animations on mount
      gsap.fromTo(titleRef.current, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.8, ease: "power3.out", delay: 0.2 });
      gsap.fromTo(editorSectionRef.current, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 1, ease: "power3.out", delay: 0.5 });
     }, []);
+
+
+  const handleWelcomeClose = () => {
+    localStorage.setItem('hasSeenWelcomeOverlay', 'true');
+    setShowWelcome(false);
+  };
+
 
    const handleEditorWillMount = useCallback((monaco: Monaco) => {
      setupDarijaScriptLanguage(monaco);
@@ -196,6 +214,9 @@ const HomePage: FunctionComponent<HomePageProps> = ({}) => {
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-background to-[hsl(244,80%,6%)]">
+       {/* Render Welcome Overlay conditionally */}
+       {showWelcome && <WelcomeOverlay onClose={handleWelcomeClose} />}
+
       {/* Top Header - Title */}
        <header ref={titleRef} className="p-3 text-center border-b border-border/20 shadow-sm flex-shrink-0">
         <h1 className="text-2xl font-bold text-primary tracking-wide">
@@ -222,7 +243,7 @@ const HomePage: FunctionComponent<HomePageProps> = ({}) => {
                     className="bg-button-primary-gradient text-primary-foreground hover:opacity-90 transition-opacity shadow-sm hover:shadow-lg focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                     size="sm"
                   >
-                    {isRunning ? <Loader size={16} className="mr-1 animate-spin"/> : <Play size={16} className="mr-1"/>}
+                    {isRunning ? <Loader size={16} className="mr-1 animate-spin"/> : <Play size={16} className={cn("mr-1", isRunning ? "animate-spin-slow" : "")}/>} {/* Slow spin when running */}
                     {isRunning ? 'Running...' : 'Run Code'}
                   </Button>
                   {/* Docs Button inside Dialog */}
@@ -436,5 +457,3 @@ const HomePage: FunctionComponent<HomePageProps> = ({}) => {
 };
 
 export default HomePage;
-
-    
