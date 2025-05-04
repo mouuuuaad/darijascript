@@ -41,28 +41,203 @@
 
     /* Charts - derived from palette */
     --chart-1: 207 90% 55%; /* Primary variant */
-+    --chart-2: 167 80% 50%; /* Secondary/Accent variant */
-     --chart-2: 167 80% 50%; /* Secondary/Accent variant */
-     --chart-3: 280 80% 65%; /* Contrasting Purple */
-     --chart-4: 35 90% 60%; /* Contrasting Orange/Gold */
-     --chart-5: 210 30% 80%; /* Lighter Foreground variant */
-@@ -128,8 +129,8 @@
-       --output-success-text: hsl(167 80% 80%);
-     }
- 
--
-     /* Apply the dark theme variables directly as there's only one theme now */
-+
-     body {
-       background-color: hsl(var(--background));
-       color: hsl(var(--foreground));
-@@ -251,7 +252,5 @@
-       --output-success-text: hsl(167 80% 80%);
-     }
- }
--
--
--
--
-+/* Existing code from globals.css */
-+
+    --chart-2: 167 80% 50%; /* Secondary/Accent variant */
+    --chart-3: 280 80% 65%; /* Contrasting Purple */
+    --chart-4: 35 90% 60%; /* Contrasting Orange/Gold */
+    --chart-5: 210 30% 80%; /* Lighter Foreground variant */
+
+    /* Sidebar Theme Variables */
+    --sidebar-background: 244 92% 6%; /* Slightly lighter than main background */
+    --sidebar-foreground: 210 40% 85%; /* Slightly darker than main foreground */
+    --sidebar-primary: 207 100% 62%;
+    --sidebar-primary-foreground: 244 92% 4%;
+    --sidebar-accent: 207 20% 20%; /* Subtle accent on sidebar */
+    --sidebar-accent-foreground: 207 100% 85%;
+    --sidebar-border: 244 30% 20%;
+    --sidebar-ring: 207 90% 60%;
+
+    /* Docs code block */
+    --docs-code-bg: 244 70% 12%;
+    --docs-code-border: 244 30% 20%;
+  }
+
+  .dark {
+    /* Darker theme modifications if needed - for now, keeping it consistent */
+    --background: 244 92% 4%;
+    --foreground: 210 40% 98%;
+    --card: 244 50% 10%;
+    --card-foreground: 210 40% 98%;
+    --popover: 244 60% 8%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 207 100% 62%;
+    --primary-foreground: 244 92% 6%;
+    --secondary: 167 74% 60%;
+    --secondary-foreground: 244 92% 4%;
+    --muted: 244 40% 15%;
+    --muted-foreground: 210 20% 75%;
+    --accent: 167 84% 67%;
+    --accent-foreground: 244 92% 4%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 244 30% 20%;
+    --input: 244 40% 18%;
+    --ring: 207 100% 70%;
+    --output-success-text: hsl(167 80% 80%);
+  }
+
+  /* Creative Bright Colors - Toast Styles */
+  .toaster {
+    --toast-background: hsl(var(--background));
+    --toast-foreground: hsl(var(--foreground));
+    --toast-border: hsl(var(--border));
+    --toast-radius: 0.5rem;
+    --output-success-text: hsl(167 80% 80%);
+  }
+
+
+  /* Apply the dark theme variables directly as there's only one theme now */
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+
+  .bg-card {
+    background-color: hsl(var(--card));
+  }
+
+  .text-card-foreground {
+    color: hsl(var(--card-foreground));
+  }
+
+  .bg-popover {
+    background-color: hsl(var(--popover));
+  }
+
+  .text-popover-foreground {
+    color: hsl(var(--popover-foreground));
+  }
+
+  .bg-primary {
+    background-color: hsl(var(--primary));
+  }
+
+  .text-primary {
+    color: hsl(var(--primary));
+  }
+
+  .text-primary-foreground {
+    color: hsl(var(--primary-foreground));
+  }
+
+  .bg-secondary {
+    background-color: hsl(var(--secondary));
+  }
+
+  .text-secondary-foreground {
+    color: hsl(var(--secondary-foreground));
+  }
+
+  .bg-muted {
+    background-color: hsl(var(--muted));
+  }
+
+  .text-muted-foreground {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .bg-accent {
+    background-color: hsl(var(--accent));
+  }
+
+  .text-accent-foreground {
+    color: hsl(var(--accent-foreground));
+  }
+
+  .bg-destructive {
+    background-color: hsl(var(--destructive));
+  }
+
+  .text-destructive-foreground {
+    color: hsl(var(--destructive-foreground));
+  }
+
+  .bg-border {
+    background-color: hsl(var(--border));
+  }
+
+  .border-border {
+    border-color: hsl(var(--border));
+  }
+
+  .bg-input {
+    background-color: hsl(var(--input));
+  }
+
+  .ring-ring {
+    --tw-ring-color: hsl(var(--ring));
+  }
+}
+
+@layer components {
+  /* Reusable toast styles */
+  .toaster {
+    @apply max-w-[400px] w-full bg-card border border-border rounded-md shadow-lg p-4 text-foreground;
+  }
+
+  .toast-title {
+    @apply text-lg font-semibold;
+  }
+
+  .toast-description {
+    @apply text-sm mt-1;
+  }
+
+  .docs-container {
+    @apply h-full overflow-y-auto;
+  }
+
+  .docs-intro {
+    @apply mb-6 text-muted-foreground;
+  }
+
+  .docs-intro h2 {
+    @apply text-3xl font-bold tracking-tight mb-2 text-foreground;
+  }
+
+  .doc-entry {
+    @apply mb-4 last:mb-0 border rounded-lg p-4 bg-muted/10 border-border/30 shadow-sm;
+  }
+
+  .doc-entry-header {
+    @apply flex items-center justify-between mb-2;
+  }
+
+  .doc-entry-darija {
+    @apply text-lg font-semibold text-primary;
+  }
+
+  .doc-entry-english {
+    @apply font-mono text-xs text-muted-foreground tracking-wider uppercase;
+  }
+
+  .doc-entry-description {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .doc-entry-usage-notes {
+    @apply text-xs font-mono text-muted-foreground mt-2 italic;
+  }
+
+  .doc-entry-example {
+    @apply mt-3;
+  }
+  .creator-credit {
+      @apply mt-8 text-center text-xs text-muted-foreground;
+  }
+
+  .creator-name {
+      @apply font-bold text-primary;
+  }
+}
+/* Existing code from globals.css */
