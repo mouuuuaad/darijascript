@@ -1,5 +1,4 @@
 
-
 // Import the parse function and ASTNode interface
 import { ASTNode, parse as parseCode } from './parser';
 
@@ -805,8 +804,34 @@ class Interpreter {
 
              // Special handling for Array methods accessed via Darija names
             if (thisContext instanceof Array && typeof propName === 'string' && BUILTIN_METHODS.includes(propName)) {
-                 // Ensure we call the correct Array.prototype method
-                 funcToCall = Array.prototype[propName as keyof Array<any>];
+                 const mappedJsMethod = this.mapDarijaMethodToJs(propName);
+                 if (mappedJsMethod && typeof Array.prototype[mappedJsMethod as keyof Array<any>] === 'function') {
+                     funcToCall = Array.prototype[mappedJsMethod as keyof Array<any>];
+
+                     // Handle methods like map, filter, find, reduce which take callbacks
+                     if (['map', 'filter', 'find', 'forEach', 'reduce'].includes(mappedJsMethod)) {
+                         const darijaCallback = args[0];
+                         if (darijaCallback instanceof DarijaScriptFunction) {
+                             // Wrap the DarijaScript function in a JS function
+                             const jsCallback = (...callbackArgs: any[]) => {
+                                 const callbackEnv = darijaCallback.closure.extend();
+                                 // Map JS callback arguments to Darija function parameters
+                                 darijaCallback.params.forEach((param, index) => {
+                                     if (param.name) callbackEnv.declare(param.name, callbackArgs[index], false);
+                                 });
+                                 let returnValue: any = undefined;
+                                  try {
+                                     this.evaluate(darijaCallback.body, callbackEnv);
+                                  } catch (e) {
+                                     if (e instanceof ReturnValue) { returnValue = e.value; }
+                                     else { throw e; } // Re-throw other errors/signals
+                                  }
+                                  return returnValue;
+                             };
+                             args[0] = jsCallback; // Replace Darija function with JS wrapper for the call
+                         }
+                     }
+                 }
             }
             // Similar handling for String methods
             if (typeof thisContext === 'string' && typeof propName === 'string' && BUILTIN_METHODS.includes(propName)) {
@@ -1030,10 +1055,10 @@ class Interpreter {
          try {
             const value = obj[propName];
             // Bind method if it's a function on the object instance
-            if (typeof value === 'function' && typeof propName === 'string' && !(func instanceof DarijaScriptFunction)) {
+            if (typeof value === 'function' && typeof propName === 'string' && !(value instanceof DarijaScriptFunction)) {
                 const jsMethodName = this.mapDarijaMethodToJs(propName) || propName;
-                if(typeof obj[jsMethodName] === 'function'){
-                    return obj[jsMethodName].bind(obj);
+                if(typeof obj[jsMethodName as keyof typeof obj] === 'function'){
+                    return obj[jsMethodName as keyof typeof obj].bind(obj);
                 }
             }
             return value;
@@ -1183,7 +1208,7 @@ class Interpreter {
              '3am': 'getFullYear', 'chhr': 'getMonth', 'nhar': 'getDate'
              // Static methods like mfatih/qiyam are handled differently
         };
-        return map[darijaMethod] || null;
+        return map[darijaMethod] || darijaMethod; // Return original if no mapping found
     }
 }
 

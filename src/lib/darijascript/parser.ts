@@ -1,5 +1,4 @@
 
-
 // A simplified recursive descent parser for DarijaScript
 // Aims to generate an Abstract Syntax Tree (AST) representing the code structure.
 
@@ -199,17 +198,27 @@ class Parser {
    }
 
   parseIfStatement(): ASTNode {
-    const startToken = this.previous();
-    this.consumeValue('PUNCTUATION', '(', "Kan tsnna '(' ba3d 'ila'.");
+    const startToken = this.previous(); // 'ila' or 'wa9ila' token
+    this.consumeValue('PUNCTUATION', '(', "Kan tsnna '(' ba3d 'ila'/'wa9ila'.");
     const test = this.parseExpression();
     this.consumeValue('PUNCTUATION', ')', "Kan tsnna ')' ba3d condition.");
     const consequent = this.parseStatement(); // Consequent can be single statement or block
+
     let alternate: ASTNode | undefined = undefined;
     if (this.matchValue('KEYWORD', 'ella')) {
       alternate = this.parseStatement();
+      // After an 'ella', we shouldn't have a 'wa9ila' immediately following
+      if (this.checkValue('KEYWORD', 'wa9ila')) {
+          throw this.error(this.peek(), "'wa9ila' ma ymknch tji mora 'ella'.");
+      }
+    } else if (this.matchValue('KEYWORD', 'wa9ila')) { // Handle 'else if' (wa9ila)
+        // Recursively parse the next 'if' statement started by 'wa9ila'
+        alternate = this.parseIfStatement();
     }
+
     return { type: 'IfStatement', test, consequent, alternate, line: startToken.line, column: startToken.column };
-  }
+}
+
 
   parseWhileStatement(): ASTNode {
        const startToken = this.previous();
@@ -344,13 +353,13 @@ class Parser {
 
    parseBreakStatement(): ASTNode {
        const startToken = this.previous();
-       this.matchValue('PUNCTUATION', ';');
+       this.consumeValue('PUNCTUATION', ';', "Khass ';' ba3d wa9f."); // Make semicolon mandatory
        return { type: 'BreakStatement', line: startToken.line, column: startToken.column };
    }
 
    parseContinueStatement(): ASTNode {
         const startToken = this.previous();
-       this.matchValue('PUNCTUATION', ';');
+       this.consumeValue('PUNCTUATION', ';', "Khass ';' ba3d kamml."); // Make semicolon mandatory
         return { type: 'ContinueStatement', line: startToken.line, column: startToken.column };
    }
 
@@ -668,7 +677,7 @@ class Parser {
             switch (this.peek().type) {
                 case 'KEYWORD':
                     switch(this.peek().value) {
-                        case 'tabit': case 'bdl': case 'dala': case 'ila': case 'douz':
+                        case 'tabit': case 'bdl': case 'dala': case 'ila': case 'wa9ila': case 'douz':
                         case 'madamt': case 'dir': case 'jrb': case 'bdl3la':
                         case 'rj3': case 'wa9f': case 'kamml': case '7ala': case '3adi':
                             return;
