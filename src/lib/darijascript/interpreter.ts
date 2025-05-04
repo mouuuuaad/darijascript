@@ -102,12 +102,17 @@ function tokenize(code: string): Token[] {
     // Operators and Punctuation
      let potentialOp = '';
      let matchedOp = '';
-     for (let i = 0; i < 3 && cursor + i < code.length; i++) { // Check up to 3 chars for operators like ===
-         potentialOp += code[cursor + i];
-         if (OPERATORS.includes(potentialOp) || PUNCTUATION.includes(potentialOp)) {
-             matchedOp = potentialOp;
+     // Check for multi-character operators first (e.g., '==', '>=')
+     for (let len = 2; len >= 1; len--) {
+         if (cursor + len <= code.length) {
+             potentialOp = code.substring(cursor, cursor + len);
+             if (OPERATORS.includes(potentialOp) || PUNCTUATION.includes(potentialOp)) {
+                 matchedOp = potentialOp;
+                 break; // Found the longest match
+             }
          }
      }
+
 
      if (matchedOp) {
          if (OPERATORS.includes(matchedOp)) {
@@ -130,10 +135,25 @@ function tokenize(code: string): Token[] {
 }
 
 
-// --- Parser (Simplified AST) ---
-// Note: This is a very basic parser for demonstration. A real parser would be more complex.
+// --- Parser (Recursive Descent) ---
+// Grammar (Simplified):
+// program     -> statement* EOF
+// statement   -> declaration | expressionStatement | printStatement | blockStatement | ifStatement | whileStatement
+// declaration -> ("tabit" | "bdl") IDENTIFIER "=" expression ";"
+// printStatement -> "tba3" "(" arguments? ")" ";"
+// expressionStatement -> expression ";"
+// expression  -> term ( ( "+" | "-" ) term )*
+// term        -> factor ( ( "*" | "/" ) factor )*
+// factor      -> primary | unary
+// unary       -> ( "!" | "-" ) factor // Not implemented yet
+// primary     -> NUMBER | STRING | BOOLEAN | IDENTIFIER | "(" expression ")" | callExpression
+// callExpression -> IDENTIFIER "(" arguments? ")" // Simplified for now
+// arguments   -> expression ( "," expression )*
+
 interface ASTNode {
     type: string;
+    line: number; // For better error reporting during evaluation
+    column: number; // For better error reporting during evaluation
     [key: string]: any; // Properties vary by node type
 }
 
@@ -144,13 +164,17 @@ function parse(tokens: Token[]): ASTNode[] {
 
     const peek = () => tokens[current];
     const previous = () => tokens[current - 1];
-    const advance = () => {
+    const advance = (): Token => {
         if (!isAtEnd()) current++;
         return previous();
     };
     const isAtEnd = () => peek().type === 'EOF';
-    const check = (type: string) => !isAtEnd() && peek().type === type;
-    const match = (...types: string[]) => {
+    const check = (type: string, value?: string | number | boolean | null) => {
+        if (isAtEnd()) return false;
+        const token = peek();
+        return token.type === type && (value === undefined || token.value === value);
+    };
+    const match = (...types: string[]): boolean => {
         for (const type of types) {
             if (check(type)) {
                 advance();
@@ -159,73 +183,176 @@ function parse(tokens: Token[]): ASTNode[] {
         }
         return false;
     };
-    const consume = (type: string, message: string) => {
-        if (check(type)) return advance();
+     const matchOperator = (...values: string[]): boolean => {
+        if(check('OPERATOR') && values.includes(peek().value as string)) {
+            advance();
+            return true;
+        }
+        return false;
+     }
+     const matchPunctuation = (...values: string[]): boolean => {
+        if(check('PUNCTUATION') && values.includes(peek().value as string)) {
+            advance();
+            return true;
+        }
+        return false;
+     }
+    const consume = (type: string, message: string, value?: string | number | boolean | null): Token => {
+        if (check(type, value)) return advance();
         const token = peek();
-        throw new Error(`[Ln ${token.line}, Col ${token.column}] ${message}. Kan tsnna '${type}' walakin l9it '${token.value}' (${token.type})`);
+        let expected = `'${type}'`;
+        if (value !== undefined) expected += ` with value '${value}'`;
+        throw new Error(`[Ln ${token.line}, Col ${token.column}] ${message}. Kan tsnna ${expected} walakin l9it '${token.value}' (${token.type})`);
+    }
+    const error = (token: Token, message: string): Error => {
+        return new Error(`[Ln ${token.line}, Col ${token.column}] Ghalat 3nd '${token.value}': ${message}`);
+    }
+
+    // --- Parsing Functions ---
+
+    const parsePrimary = (): ASTNode => {
+        const token = peek();
+        if (match('NUMBER', 'STRING', 'BOOLEAN')) {
+             const prev = previous();
+            return { type: 'Literal', value: prev.value, line: prev.line, column: prev.column };
+        }
+        if (match('IDENTIFIER')) {
+            const prev = previous();
+            // Check if it's a function call
+            // if (check('PUNCTUATION', '(')) {
+            //     advance(); // Consume '('
+            //     const args = [];
+            //     if (!check('PUNCTUATION', ')')) {
+            //         do {
+            //             args.push(parseExpression());
+            //         } while (matchPunctuation(','));
+            //     }
+            //     const closingParen = consume('PUNCTUATION', "Khass ')' wra l arguments dyal function call", ')');
+            //     return { type: 'CallExpression', callee: { type: 'Identifier', name: prev.value, line: prev.line, column: prev.column }, arguments: args, line: prev.line, column: prev.column };
+            // }
+            // Otherwise, it's a variable identifier
+            return { type: 'Identifier', name: prev.value, line: prev.line, column: prev.column };
+        }
+        if (matchPunctuation('(')) {
+            const expr = parseExpression();
+            consume('PUNCTUATION', "Khass ')' wra l'expression f groups", ')');
+            return { type: 'Grouping', expression: expr, line: token.line, column: token.column }; // Grouping node might be useful
+        }
+
+        throw error(peek(), "Kan tsnna expression.");
+    }
+
+    const parseFactor = (): ASTNode => {
+        // Add unary operators here if needed (-) (!)
+        return parsePrimary();
+    }
+
+    const parseTerm = (): ASTNode => {
+        let expr = parseFactor();
+        const startToken = previous(); // Token that started this expression part
+
+        while (matchOperator('*', '/')) {
+            const operator = previous();
+            const right = parseFactor();
+            expr = { type: 'BinaryExpression', left: expr, operator: operator.value, right: right, line: startToken.line, column: startToken.column };
+        }
+        return expr;
     }
 
     const parseExpression = (): ASTNode => {
-        // Simplified: Parses basic literals and identifiers for now
-        const token = advance();
-        switch (token.type) {
-            case 'NUMBER':
-            case 'STRING':
-            case 'BOOLEAN':
-                return { type: 'Literal', value: token.value };
-            case 'IDENTIFIER':
-                return { type: 'Identifier', name: token.value };
-            // Add more expression types (binary ops, function calls, etc.)
-            default:
-                throw new Error(`[Ln ${token.line}, Col ${token.column}] Ma fhmtch had l'expression: '${token.value}' (${token.type})`);
+        let expr = parseTerm();
+         const startToken = previous(); // Token that started this expression part
+
+        while (matchOperator('+', '-')) {
+            const operator = previous();
+            const right = parseTerm();
+            expr = { type: 'BinaryExpression', left: expr, operator: operator.value, right: right, line: startToken.line, column: startToken.column };
         }
+        return expr;
     }
 
     const parseStatement = (): ASTNode | null => {
-        const token = peek();
+        const token = peek(); // For line/column info if needed
         if (match('KEYWORD')) {
-            const keyword = previous().value;
+            const keywordToken = previous();
+            const keyword = keywordToken.value;
             if (keyword === 'tabit' || keyword === 'bdl') {
-                const identifier = consume('IDENTIFIER', "Khass smya dyal variable wra '" + keyword + "'");
-                consume('OPERATOR', "Khass '=' wra smyt l variable")?.value === '=';
+                const identifier = consume('IDENTIFIER', `Khass smya dyal variable wra '${keyword}'`);
+                consume('OPERATOR', "Khass '=' wra smyt l variable", '=');
                 const initializer = parseExpression();
-                consume('PUNCTUATION', "Khass ';' f lekher dyal declaration")?.value === ';';
-                return { type: 'VariableDeclaration', kind: keyword, identifier: identifier.value, initializer };
+                consume('PUNCTUATION', "Khass ';' f lekher dyal declaration", ';');
+                return { type: 'VariableDeclaration', kind: keyword, identifier: identifier.value, initializer, line: keywordToken.line, column: keywordToken.column };
             }
-            // Add parsing for other keywords (ila, douz, etc.)
-        } else if (match('BUILTIN')) {
-             const builtin = previous().value;
+            // Add parsing for other keywords (ila, douz, etc.) here
+            throw error(keywordToken, `Keyword '${keyword}' mam supporitch f statements hna daba.`);
+        }
+
+        if (match('BUILTIN')) {
+             const builtinToken = previous();
+             const builtin = builtinToken.value;
              if (builtin === 'tba3') {
-                 consume('PUNCTUATION', "Khass '(' wra 'tba3'")?.value === '(';
+                 consume('PUNCTUATION', "Khass '(' wra 'tba3'", '(');
                  const args = [];
-                 if (peek().type !== 'PUNCTUATION' || peek().value !== ')') {
-                     args.push(parseExpression());
-                      while(match('PUNCTUATION') && previous().value === ',') {
-                          args.push(parseExpression());
-                      }
+                 if (!check('PUNCTUATION', ')')) {
+                     do {
+                        // Ensure we parse the full expression for each argument
+                        args.push(parseExpression());
+                     } while (matchPunctuation(','));
                  }
-                 consume('PUNCTUATION', "Khass ')' f lekher dyal 'tba3'")?.value === ')';
-                 consume('PUNCTUATION', "Khass ';' f lekher dyal 'tba3'")?.value === ';';
-                 return { type: 'CallExpression', callee: { type: 'Identifier', name: builtin }, arguments: args };
+                 consume('PUNCTUATION', "Khass ')' f lekher dyal l arguments dyal 'tba3'", ')');
+                 consume('PUNCTUATION', "Khass ';' f lekher dyal l'instruction 'tba3'", ';');
+                 return { type: 'CallExpression', callee: { type: 'Identifier', name: builtin, line: builtinToken.line, column: builtinToken.column }, arguments: args, line: builtinToken.line, column: builtinToken.column };
              }
+             throw error(builtinToken, `Built-in '${builtin}' mam supporitch f statements hna daba.`);
         }
 
-        // Handle expression statements (like simple assignments or function calls if implemented)
-         // if (token.type === 'IDENTIFIER' || token.type === 'NUMBER' || token.type === 'STRING') {
-         //     const expr = parseExpression();
-         //     consume('PUNCTUATION', "Khass ';' f lekher dyal l'instruction")?.value === ';';
-         //     return { type: 'ExpressionStatement', expression: expr };
-         // }
+        // Handle expression statements (like assignments `a = 5;` or just `5;`)
+         // Need assignment parsing first:
+         // if (check('IDENTIFIER') && tokens[current + 1]?.type === 'OPERATOR' && tokens[current + 1]?.value === '=') { ... }
 
-        // If no statement matched, advance and ignore (or throw error)
-        if (!isAtEnd() && token.type !== 'EOF') {
-           // console.warn(`Ignoring token: ${token.type} ${token.value}`);
-           // advance();
-           // return null; // Or throw error for stricter parsing
-           throw new Error(`[Ln ${token.line}, Col ${token.column}] Ma fhmtch had l'instruction li bdat b '${token.value}' (${token.type})`);
+        // If it's none of the above, try parsing it as a standalone expression followed by a semicolon
+        // This handles cases like `5 + 10;` (though often useless) or future function calls `myFunc();`
+        try {
+            const expr = parseExpression();
+            consume('PUNCTUATION', "Khass ';' f lekher dyal l'instruction", ';');
+            return { type: 'ExpressionStatement', expression: expr, line: token.line, column: token.column };
+        } catch (e) {
+            // If parsing expression failed, it wasn't a valid start of a statement
+            // Rewind? Or rely on the main loop's error handling.
+            // For now, let the error propagate from parseExpression or consume
+             throw e;
         }
-        return null; // Reached EOF or handled unknown token
+
+        // If no statement matched, it's an error unless EOF
+        // if (!isAtEnd()) {
+        //      throw error(peek(), "Ma fhmtch had l'instruction.");
+        // }
+        // return null;
     }
+
+
+     const synchronize = () => {
+        advance(); // Consume the token that caused the error
+
+        while (!isAtEnd()) {
+            if (previous().type === 'PUNCTUATION' && previous().value === ';') return; // Found end of a statement
+
+            switch (peek().type) {
+                case 'KEYWORD': // Keywords often start new statements
+                     if (['tabit', 'bdl', 'ila', 'douz', 'mnin', 'dala', 'rj3'].includes(peek().value as string)) {
+                         return;
+                     }
+                    break;
+                 case 'BUILTIN':
+                     if (['tba3'].includes(peek().value as string)) {
+                          return;
+                     }
+                     break;
+                // Add other potential statement starting points if needed
+            }
+            advance();
+        }
+    };
 
 
     while (!isAtEnd()) {
@@ -235,19 +362,13 @@ function parse(tokens: Token[]): ASTNode[] {
                 ast.push(statement);
             }
         } catch (e: any) {
-            // Error recovery (basic): skip to next potential statement start (e.g., ';')
+            // Error recovery: Log and attempt to synchronize
             console.error("Parsing Error:", e.message);
-             while (!isAtEnd() && peek().type !== 'PUNCTUATION' && peek().value !== ';') {
-                 advance();
-             }
-             if (match('PUNCTUATION') && previous().value === ';') {
-                 // Successfully skipped to the end of the likely problematic statement
-             } else if (!isAtEnd()) {
-                advance(); // Advance past the problematic token if no semicolon found
-             }
-             // For a real IDE, report the error without stopping the whole parse if possible
-             // For this basic version, we'll re-throw to stop execution on first parse error
-             throw e;
+            // Report the error properly in an IDE context here
+            synchronize();
+            // For this basic interpreter, we'll stop parsing on the first error.
+            // Remove the re-throw if you want to attempt parsing the rest of the file.
+            throw e; // Re-throw to stop execution
         }
     }
 
@@ -297,92 +418,151 @@ class Environment {
         throw new Error(`Variable '${name}' ma declaritch 9bel.`); // Undefined variable
     }
 
-    get(name: string): any {
+    get(token: Token): any { // Pass token for error reporting
+        const name = token.value as string;
         if (this.values.has(name)) {
             return this.values.get(name);
         }
 
         if (this.enclosing !== null) {
-            return this.enclosing.get(name);
+            return this.enclosing.get(token);
         }
 
-        throw new Error(`Variable '${name}' ma declaritch.`); // Undefined variable
+        throw new Error(`[Ln ${token.line}, Col ${token.column}] Variable '${name}' ma declaritch.`); // Undefined variable
     }
 }
 
+// Helper to report runtime errors with line/column
+function runtimeError(node: ASTNode, message: string): Error {
+    return new Error(`[Ln ${node.line}, Col ${node.column}] Runtime Ghalat: ${message}`);
+}
+
+
 function evaluate(node: ASTNode, env: Environment, outputCollector: string[]): any {
-    switch (node.type) {
-        case 'Literal':
-            return node.value;
+    try {
+        switch (node.type) {
+            case 'Literal':
+                return node.value;
 
-        case 'Identifier':
-            return env.get(node.name);
-
-        case 'VariableDeclaration': {
-            const value = node.initializer ? evaluate(node.initializer, env, outputCollector) : undefined;
-            env.define(node.identifier, value, node.kind === 'tabit');
-            return value; // Or return undefined? Declaration doesn't typically evaluate to a value used elsewhere immediately
-        }
-
-        case 'CallExpression': {
-            const callee = node.callee;
-            if (callee.type === 'Identifier' && callee.name === 'tba3') {
-                const args = node.arguments.map((arg: ASTNode) => evaluate(arg, env, outputCollector));
-                 const outputString = args.map(arg => {
-                     if (typeof arg === 'object' && arg !== null) return JSON.stringify(arg); // Basic object/array printing
-                     return String(arg);
-                 }).join(' ');
-                outputCollector.push(outputString);
-                return undefined; // tba3 doesn't return a value
+            case 'Identifier': {
+                 // We need the original token for error reporting if undefined
+                 // The parser should ideally attach the token to the node or pass coords
+                 // For now, create a placeholder token if coords are missing
+                 const pseudoToken: Token = { type: 'IDENTIFIER', value: node.name, line: node.line ?? 0, column: node.column ?? 0 };
+                return env.get(pseudoToken);
             }
-            // Handle user-defined functions later
-            throw new Error(`Ma fhmtch l function اولا l built-in '${callee.name}'`);
-        }
 
-         case 'BinaryExpression': { // Needs parsing logic first
-             const left = evaluate(node.left, env, outputCollector);
-             const right = evaluate(node.right, env, outputCollector);
-             const op = node.operator;
+            case 'Grouping':
+                return evaluate(node.expression, env, outputCollector);
 
-             // Type checking
-              const checkNumberOperands = () => {
-                  if (typeof left !== 'number' || typeof right !== 'number') {
-                      throw new Error(`Operands khasshom ykounou ar9am bach dir l'opération '${op}'. L9it: ${typeof left} o ${typeof right}`);
-                  }
-              }
 
-             switch (op) {
-                 case '+':
-                     // Allow string concatenation
-                     if (typeof left === 'string' || typeof right === 'string') {
-                         return String(left) + String(right);
-                     }
-                     checkNumberOperands();
-                     return left + right;
-                 case '-':
-                     checkNumberOperands();
-                     return left - right;
-                 case '*':
-                     checkNumberOperands();
-                     return left * right;
-                 case '/':
-                     checkNumberOperands();
-                      if (right === 0) {
-                          throw new Error(`Ma ymknch t9ssem 3la zero.`);
+            case 'VariableDeclaration': {
+                const value = node.initializer ? evaluate(node.initializer, env, outputCollector) : undefined;
+                env.define(node.identifier, value, node.kind === 'tabit');
+                return value; // Declaration evaluates to the assigned value (like JS)
+            }
+
+             case 'ExpressionStatement':
+                return evaluate(node.expression, env, outputCollector); // Evaluate the expression, discard result
+
+            case 'CallExpression': {
+                const calleeNode = node.callee;
+                // For now, only handle built-in 'tba3' called via Identifier
+                if (calleeNode.type === 'Identifier' && calleeNode.name === 'tba3') {
+                    const args = node.arguments.map((arg: ASTNode) => evaluate(arg, env, outputCollector));
+                    const outputString = args.map(arg => {
+                        if (arg === undefined) return 'undefined'; // Handle undefined explicitly
+                        if (arg === null) return 'null';
+                        if (typeof arg === 'object') {
+                             try {
+                                 return JSON.stringify(arg); // Basic object/array printing
+                             } catch {
+                                 return '[Object]'; // Handle circular or complex objects
+                             }
+                        }
+                        return String(arg);
+                    }).join(' ');
+                    outputCollector.push(outputString);
+                    return undefined; // tba3 doesn't return a value
+                }
+                 // Handle user-defined functions later
+                 // const callee = evaluate(calleeNode, env, outputCollector); // Evaluate the callee expression
+                 // if (typeof callee !== 'function') { // Or check for custom Function object type
+                 //     throw runtimeError(calleeNode, "Kan tsnna function bach n 3iyto liha.");
+                 // }
+                 // const evaluatedArgs = node.arguments.map((arg: ASTNode) => evaluate(arg, env, outputCollector));
+                 // Call the function: callee(...evaluatedArgs); - needs proper environment handling for closures
+
+                throw runtimeError(calleeNode, `Ma ymknch t3iye6 l had l7aja '${calleeNode.name || node.type}', machi function.`);
+            }
+
+             case 'BinaryExpression': {
+                 const left = evaluate(node.left, env, outputCollector);
+                 const right = evaluate(node.right, env, outputCollector);
+                 const op = node.operator;
+
+                 // Type checking helper
+                  const checkNumberOperands = () => {
+                      if (typeof left !== 'number' || typeof right !== 'number') {
+                          throw runtimeError(node, `Operands khasshom ykounou ar9am bach dir l'opération '${op}'. L9it: ${typeof left} o ${typeof right}`);
                       }
-                     return left / right;
-                 // Add comparison operators (==, !=, <, >, <=, >=)
-                 // Add logical operators (&&, ||)
-                 default:
-                     throw new Error(`L'opérateur '${op}' mam3rofch.`);
+                  }
+
+                 switch (op) {
+                     case '+':
+                         // Allow string concatenation or number addition
+                         if (typeof left === 'string' || typeof right === 'string') {
+                             return String(left) + String(right);
+                         }
+                          if (typeof left === 'number' && typeof right === 'number') {
+                              return left + right;
+                          }
+                          throw runtimeError(node, `L'opération '+' kat khdem ghi m3a ar9am اولا strings. L9it: ${typeof left} o ${typeof right}`);
+                     case '-':
+                         checkNumberOperands();
+                         return left - right;
+                     case '*':
+                         checkNumberOperands();
+                         return left * right;
+                     case '/':
+                         checkNumberOperands();
+                          if (right === 0) {
+                              throw runtimeError(node, `Ma ymknch t9ssem 3la zero.`);
+                          }
+                         return left / right;
+                     // Add comparison operators (==, !=, <, >, <=, >=)
+                     case '==': return left === right; // Basic equality
+                     case '!=': return left !== right;
+                     case '<':
+                         checkNumberOperands();
+                         return left < right;
+                     case '<=':
+                         checkNumberOperands();
+                         return left <= right;
+                     case '>':
+                         checkNumberOperands();
+                         return left > right;
+                     case '>=':
+                         checkNumberOperands();
+                         return left >= right;
+                     // Add logical operators (&&, ||) - implement short-circuiting if needed
+                     default:
+                         throw runtimeError(node, `L'opérateur '${op}' mam3rofch.`);
+                 }
              }
-         }
 
-        // Add cases for other AST node types (IfStatement, WhileStatement, etc.)
+            // Add cases for other AST node types (IfStatement, WhileStatement, AssignmentExpression, etc.)
 
-        default:
-            throw new Error(`Ma 3rftch kifach n executer had node type: ${node.type}`);
-    }
+            default:
+                throw new Error(`[Ln ${node.line}, Col ${node.column}] Ma 3rftch kifach n executer had node type: ${node.type}`);
+        }
+     } catch (error: any) {
+        // If the error doesn't already have line/col, add them from the node
+        if (error instanceof Error && !error.message.startsWith('[')) {
+           throw runtimeError(node, error.message);
+        }
+        throw error; // Re-throw if it's already a runtimeError or parse error
+     }
 }
 
 // --- Main Interpreter Function ---
@@ -410,6 +590,7 @@ export function interpret(code: string): InterpretationResult {
         return { output, error: null };
     } catch (e: any) {
         console.error("Interpretation Error:", e);
+        // Return the error message, potentially already formatted with line/col
         return { output, error: e.message || "Kayn chi ghalat f code." };
     }
 }
