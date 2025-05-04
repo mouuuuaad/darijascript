@@ -1,6 +1,7 @@
 
 
-import { ASTNode } from './parser'; // Adjusted import path
+// Import the parse function and ASTNode interface
+import { ASTNode, parse as parseCode } from './parser';
 
 interface Token {
   type: string;
@@ -40,7 +41,7 @@ const KEYWORDS = [
 // Boolean Literals mapping
 const BOOLEAN_LITERALS: { [key: string]: boolean } = {
     's7i7': true, // true
-    'kdb': false, // false
+    'kdb': false, // false - Added kdb as alternative
     'ghalat': false // Added 'ghalat' as false for flexibility
 };
 
@@ -558,7 +559,7 @@ class Interpreter {
                 }
                 return lastVal; // Return value of the last statement
 
-            case 'ExpressionStatement': // Added handler
+            case 'ExpressionStatement': // Handle ExpressionStatement
                 return this.evaluate(node.expression!, env); // Evaluate the expression within
 
             case 'VariableDeclaration':
@@ -646,20 +647,21 @@ class Interpreter {
          const kind = node.kind!; // 'tabit' or 'bdl'
          const isConstant = kind === 'tabit';
 
-         // Assuming parser structure where declaration has 'id' and 'initializer'
-         if (!node.id || !node.id.name) {
-             throw new Error("Variable declaration khass smia.");
-         }
-         const name = node.id.name;
+         // Iterate through declarations (parser creates one VariableDeclaration with multiple declarators)
+         for (const declarator of node.declarations ?? []) {
+             if (!declarator.id || !declarator.id.name) {
+                 throw new Error("Variable declaration khass smia.");
+             }
+             const name = declarator.id.name;
 
-         let value = undefined; // Default value is 'mchmcha'
-         if (node.initializer) {
-             value = this.evaluate(node.initializer, env);
-              if (this.errorOccurred) return value; // Propagate error
+             let value = undefined; // Default value is 'mchmcha'
+             if (declarator.initializer) {
+                 value = this.evaluate(declarator.initializer, env);
+                 if (this.errorOccurred) return value; // Propagate error
+             }
+             // Declare in the current environment
+             env.declare(name, value, isConstant);
          }
-
-          // Declare in the current environment
-         env.declare(name, value, isConstant);
 
          return undefined; // Variable declaration statement itself doesn't evaluate to a value
      }
@@ -739,7 +741,7 @@ class Interpreter {
                    obj[propName] = finalValue;
                    return finalValue; // Assignment expression evaluates to the assigned value
                } catch (error: any) {
-                    throw new Error(`Maقدرتش n assigner l property "${propName}" 3la ${typeof obj}: ${error.message}`);
+                    throw new Error(`Maقدرتش n assigner l property "${String(propName)}" 3la ${typeof obj}: ${error.message}`);
                }
           } else {
                throw new Error("Assignment target ماشي valid.");
@@ -882,7 +884,7 @@ class Interpreter {
                   obj[propName] = value; // Update the property value
                   return node.prefix ? value : originalValue;
               } catch (error: any) {
-                   throw new Error(`Maقدرتش n update property "${propName}" 3la ${typeof obj}: ${error.message}`);
+                   throw new Error(`Maقدرتش n update property "${String(propName)}" 3la ${typeof obj}: ${error.message}`);
               }
 
         } else {
@@ -956,6 +958,23 @@ class Interpreter {
                     const obj = this.evaluate(node.callee.object!, env);
                     if (this.errorOccurred) return obj;
                     thisContext = obj;
+
+                    // Handle mapped Darija method names
+                     if (node.callee.property?.type === 'Identifier') {
+                         const methodNameDarija = node.callee.property.name!;
+                         const methodNameJs = this.mapDarijaMethodToJs(methodNameDarija);
+                         if (methodNameJs && typeof obj[methodNameJs] === 'function') {
+                             // Call the mapped JS method
+                              try {
+                                 return obj[methodNameJs](...args);
+                              } catch (error: any) {
+                                 throw new Error(`Ghalat mli kan nadi l method "${methodNameDarija}" (JS: ${methodNameJs}): ${error.message}`);
+                              }
+                         } else if (methodNameJs) {
+                             throw new Error(`Method "${methodNameDarija}" (JS: ${methodNameJs}) ma l9inahahch f ${typeof obj}.`);
+                         }
+                         // If not a mapped method, fall through to call the original callee
+                     }
                } else {
                     // Global function call (e.g., tbe3()), 'this' is usually global object or undefined
                     thisContext = this.globalEnv.lookup('hadi'); // Use the global 'this'
@@ -1193,6 +1212,7 @@ class Interpreter {
         if (this.errorOccurred) return obj;
 
          if (obj == null) { // Check for null or undefined
+            // Special case: Allow .twil on null/undefined string representations? Or error. Error is safer.
             throw new Error(`Ma ymknch tqra property mn ${obj === null ? 'farkha' : 'mchmcha'}.`);
         }
 
@@ -1208,23 +1228,33 @@ class Interpreter {
             propName = node.property.name!;
 
             // Map Darija property name (like 'twil') to JS name ('length') if applicable
-             propName = BUILTIN_PROPERTIES[propName] || propName;
+             const mappedProp = BUILTIN_PROPERTIES[propName];
+             if (mappedProp) {
+                  // Directly return the JS property value if mapped
+                 try {
+                    return obj[mappedProp];
+                 } catch (error: any) {
+                    throw new Error(`Ghalat mli kan qra property "${propName}" (JS: ${mappedProp}) mn ${typeof obj}: ${error.message}`);
+                 }
+             }
+             // If not mapped, use the original name (propName)
         }
 
          try {
             const value = obj[propName];
 
-            // Special handling for potentially accessing methods as properties:
+            // Special handling for accessing methods as properties:
             // If the accessed property is a function, and it's a method of the object,
-            // we might need to return it bound to the object so 'this' works correctly
-            // when it's eventually called.
-            // However, direct access obj.method should just return the function itself in JS.
-            // Let's return the value directly. The CallExpression visitor handles 'this'.
-             // if (typeof value === 'function' && obj && typeof obj === 'object') {
-             //     // Could return value.bind(obj), but standard JS returns the function itself.
-             // }
+            // we need to return it bound to the object so 'this' works correctly
+            // when it's eventually called by CallExpression.
+            if (typeof value === 'function') {
+                 // Check if it's a method that we need to bind 'this' for
+                 // Native JS methods are usually bound automatically or handled by `apply`/`call`.
+                 // Let's bind it to be safe, though CallExpression's logic might handle it too.
+                 return value.bind(obj);
+            }
 
-            return value;
+            return value; // Return non-function properties directly
          } catch (error: any) {
               // Handle errors during property access (e.g., on non-objects)
               // The obj == null check above handles most cases, but proxies or getters could throw.
@@ -1369,7 +1399,8 @@ class Interpreter {
              if (value instanceof DarijaScriptFunction) {
                 return `[Dala: ${value.name || 'anonymous'}]`;
              } else {
-                return '[Dala Native]';
+                // Attempt to get native function name, fallback otherwise
+                return `[Dala Native: ${value.name || 'anonymous'}]`;
              }
         } else if (typeof value === 'object') {
             // Basic handling for arrays and objects
@@ -1380,7 +1411,21 @@ class Interpreter {
                 // Simple object representation, avoid circular issues
                  try {
                     // Be careful with JSON.stringify for complex objects (functions, Symbols, circular refs)
-                     return JSON.stringify(value, null, 2); // Pretty print object
+                     const cache = new Set();
+                     return JSON.stringify(value, (key, value) => {
+                         if (typeof value === 'object' && value !== null) {
+                             if (cache.has(value)) {
+                                 // Circular reference found, discard key
+                                 return '[Circular]';
+                             }
+                             // Store value in our collection
+                             cache.add(value);
+                         }
+                         if (typeof value === 'function') {
+                            return '[Function]'; // Represent functions
+                         }
+                         return value;
+                     }, 2); // Pretty print object
                  } catch {
                      return '[Object]'; // Fallback
                  }
@@ -1411,8 +1456,8 @@ class Interpreter {
              'l9a': 'find',      // Array find
              'lmmaj': 'reduce',  // Array reduce
              // Object methods are static, handled differently in CallExpression typically
-             // 'mfatih': 'keys', // Special handling needed (Object.keys)
-             // 'qiyam': 'values', // Special handling needed (Object.values)
+             'mfatih': 'keys', // Special handling needed (Object.keys)
+             'qiyam': 'values', // Special handling needed (Object.values)
              '3am': 'getFullYear', // Date method
              'chhr': 'getMonth',   // Date method
              'nhar': 'getDate'    // Date method
@@ -1439,8 +1484,8 @@ export function interpret(code: string): { output: string[], error?: string } {
     }
     // console.log("Tokens:", tokens); // Optional: Log tokens
 
-    // 2. Parse
-    const ast = new Parser(tokens).parse(); // Instantiate Parser and parse
+    // 2. Parse using the imported parse function
+    const ast = parseCode(tokens); // Use imported parse function
      // Check for parser errors
     if (ast.error) {
          console.error("Parser Error:", ast.error);
@@ -1457,7 +1502,10 @@ export function interpret(code: string): { output: string[], error?: string } {
     // Check if the final result indicates a runtime error occurred during interpretation
     if (interpreter.errorOccurred) {
       // Error message is already expected to be in interpreter.output
-      return { output: interpreter.output, error: interpreter.output[interpreter.output.length - 1] || "Runtime ghalat." };
+      const lastOutput = interpreter.output[interpreter.output.length - 1] || "Runtime ghalat.";
+      // Ensure the error message starts with "Ghalat:"
+      const errorMessage = lastOutput.startsWith('Ghalat:') ? lastOutput : `Ghalat: ${lastOutput}`;
+      return { output: interpreter.output, error: errorMessage };
     }
 
     // Optional: Add the final evaluated result of the program to the output,
