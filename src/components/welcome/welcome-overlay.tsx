@@ -11,6 +11,7 @@ import { MessageSquare, Loader } from 'lucide-react'; // Add Loader
 import { useToast } from '@/hooks/use-toast';
 import { firestore } from '@/lib/firebase/client'; // Import Firestore instance
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'; // Import Firestore functions
+import type { ToastProps } from '@/components/ui/toast'; // Import ToastProps type
 
 gsap.registerPlugin(ScrollTrigger); // Register ScrollTrigger
 
@@ -58,11 +59,26 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
     };
   }, []);
 
+  const startFadeOut = () => {
+    // Fade out animation before closing
+    gsap.to(overlayRef.current, {
+      opacity: 0,
+      duration: 0.5,
+      ease: 'power2.inOut',
+      onComplete: () => {
+        setIsSubmitting(false); // Reset submitting state after animation
+        onClose(); // Call onClose prop after animation finishes
+      },
+    });
+  };
+
+
   const handleEnterClick = async () => {
     if (isSubmitting) return; // Prevent multiple submissions
     setIsSubmitting(true); // Set submitting state
 
-    let toastMessage = {
+    // Default success message
+    let toastOptions: ToastProps & { title: string; description: string; } = {
        title: "شكراً!",
        description: "دعاءك وصل. الله يقبل.",
        className: "toast-success"
@@ -76,10 +92,10 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
           text: prayer.trim(),
           submittedAt: serverTimestamp(), // Use server timestamp
         });
-         toastMessage.description = `دعاءك وصل: "${prayer}". الله يقبل.`;
+         toastOptions.description = `دعاءك وصل: "${prayer}". الله يقبل.`;
       } catch (error) {
         console.error("Error adding prayer to Firestore:", error);
-         toastMessage = {
+         toastOptions = {
              title: "Ghalat!",
              description: "وقع مشكل ملي كنا نسجلو الدعاء ديالك. حاول مرة أخرى.",
              variant: "destructive",
@@ -87,26 +103,18 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
          };
       }
     } else {
-       toastMessage = {
+       toastOptions = {
           title: "دعاء؟",
           description: "نسيتي مكتبتيش دعاء؟ ماشي مشكل، دخل.",
            className: "toast-info"
       };
     }
 
-    // Show toast regardless of submission result
-    toast(toastMessage);
+    // Show toast *before* starting the fade out animation
+    toast(toastOptions);
 
-    // Fade out animation before closing
-    gsap.to(overlayRef.current, {
-      opacity: 0,
-      duration: 0.5,
-      ease: 'power2.inOut',
-      onComplete: () => {
-        setIsSubmitting(false); // Reset submitting state
-        onClose(); // Call onClose prop after animation finishes
-      },
-    });
+    // Start the fade out animation regardless of toast/Firestore outcome
+    startFadeOut();
   };
 
   return (
@@ -154,7 +162,10 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
              size="lg"
            >
              {isSubmitting ? (
-                <Loader className="mr-2 h-5 w-5 animate-spin" />
+                <>
+                    <Loader className="mr-2 h-5 w-5 animate-spin" />
+                    Kantssenaw... {/* Loading text */}
+                </>
              ) : (
                 "Yallah, Dkhel l IDE!"
              )}
