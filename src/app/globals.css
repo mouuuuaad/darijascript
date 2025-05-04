@@ -5,87 +5,154 @@
 
 @layer base {
   :root {
-    /* Dark Blue/Gray primary scheme with a strong accent */
-    --background: 220 10% 96%; /* Lighter Gray */
-    --foreground: 220 20% 15%; /* Very Dark Blue/Gray */
-    --card: 220 10% 100%; /* White Card */
-    --card-foreground: 220 20% 15%;
-    --popover: 220 10% 100%;
-    --popover-foreground: 220 20% 15%;
-    --primary: 215 80% 50%; /* Stronger, slightly darker Blue */
+    /* Refined 'Man' Colors - Keeping professional but slightly adjusting blues/grays, strengthening accent */
+    /* Using a slightly cooler, deeper blue palette */
+    --background: 210 15% 97%; /* Slightly cooler light gray */
+    --foreground: 215 25% 10%; /* Deeper dark blue/gray */
+    --card: 0 0% 100%; /* White Card */
+    --card-foreground: 215 25% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 10%;
+    --primary: 210 70% 48%; /* Stronger, slightly desaturated blue */
     --primary-foreground: 0 0% 100%; /* White */
-    --secondary: 210 15% 50%; /* Medium Gray-Blue */
+    --secondary: 210 15% 55%; /* Medium Gray-Blue */
     --secondary-foreground: 0 0% 100%; /* White */
-    --muted: 210 20% 90%; /* Lighter Gray-Blue */
-    --muted-foreground: 215 15% 55%; /* Medium-Light Gray */
-    --accent: 30 90% 55%; /* Vibrant Orange */
+    --muted: 210 20% 92%; /* Lighter Gray-Blue */
+    --muted-foreground: 215 15% 50%; /* Medium-Light Gray */
+    --accent: 35 90% 58%; /* Slightly deeper, vibrant Orange/Gold */
     --accent-foreground: 0 0% 10%; /* Dark text on accent */
-    --destructive: 0 80% 60%; /* Standard Red */
+    --destructive: 0 75% 55%; /* Slightly desaturated Red */
     --destructive-foreground: 0 0% 100%;
-    --border: 210 15% 85%; /* Light Gray-Blue Border */
-    --input: 210 15% 88%; /* Slightly lighter input border */
-    --ring: 215 80% 45%; /* Slightly darker blue for ring */
-    --chart-1: 215 70% 55%; /* Adjusted chart colors */
-    --chart-2: 30 80% 60%;
-    --chart-3: 170 60% 45%; /* Teal/Greenish Blue */
-    --chart-4: 210 15% 70%; /* Lighter Gray-Blue */
-    --chart-5: 45 80% 55%; /* Gold/Yellow */
+    --border: 210 15% 88%; /* Lighter Gray-Blue Border */
+    --input: 210 15% 90%; /* Slightly lighter input border */
+    --ring: 210 70% 45%; /* Slightly darker blue for ring */
+    --chart-1: 210 65% 50%; /* Adjusted chart colors */
+    --chart-2: 35 85% 60%;
+    --chart-3: 180 50% 40%; /* Teal */
+    --chart-4: 210 15% 75%; /* Lighter Gray-Blue */
+    --chart-5: 40 85% 55%; /* Gold/Yellow */
     --radius: 0.5rem;
-    --sidebar-background: 220 15% 94%; /* Slightly darker sidebar */
-    --sidebar-foreground: 220 20% 20%; /* Darker gray for sidebar text */
-    --sidebar-primary: 215 80% 50%; /* Use primary color */
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 20% 88%; /* Muted accent for sidebar */
-    --sidebar-accent-foreground: 220 20% 10%; /* Darker text on sidebar accent */
-    --sidebar-border: 210 15% 80%;
-    --sidebar-ring: 215 80% 45%;
 
-    /* Custom variables for Docs */
-    --docs-code-bg: 220 15% 92%;
-    --docs-entry-bg: 0 0% 100%;
-    --docs-category-border: 215 60% 70%;
-    --docs-entry-border: 30 80% 70%; /* Accent color for entry border */
+    /* Sidebar specific colors */
+    --sidebar-background: 215 20% 15%; /* Darker sidebar */
+    --sidebar-foreground: 210 20% 90%; /* Lighter text for contrast */
+    --sidebar-primary: 210 70% 60%; /* Brighter blue for sidebar */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 20% 25%; /* Darker accent */
+    --sidebar-accent-foreground: 210 20% 95%; /* Very light text on accent */
+    --sidebar-border: 215 20% 22%;
+    --sidebar-ring: 210 70% 55%;
+
+    /* Custom variables for Enhanced Docs */
+    --docs-bg: 210 20% 98%; /* Very light cool gray background */
+    --docs-category-bg: linear-gradient(135deg, hsl(var(--primary)/0.05), hsl(var(--secondary)/0.05)); /* Subtle gradient */
+    --docs-category-border: hsl(var(--primary)/0.6); /* Use primary color for border */
+    --docs-category-text: hsl(var(--primary));
+    --docs-entry-bg: hsl(var(--card)); /* White entry background */
+    --docs-entry-border: hsl(var(--accent)/0.8); /* Accent color for entry border */
+    --docs-entry-darija-text: hsl(var(--accent)); /* Accent color for Darija */
+    --docs-entry-english-text: hsl(var(--secondary)); /* Secondary for English */
+    --docs-entry-description-text: hsl(var(--foreground)/0.85);
+    --docs-code-bg: 210 15% 94%; /* Light cool gray code block */
+    --docs-code-border: hsl(var(--border));
+    --docs-intro-bg: linear-gradient(135deg, hsl(var(--primary)/0.9), hsl(var(--primary)/0.7));
+    --docs-intro-text: hsl(var(--primary-foreground));
+
+    /* Dark Theme Variables */
+    --dark-docs-bg: 215 20% 12%; /* Dark background */
+    --dark-docs-category-bg: linear-gradient(135deg, hsl(var(--primary)/0.1), hsl(var(--secondary)/0.1));
+    --dark-docs-category-border: hsl(var(--primary)/0.7);
+    --dark-docs-category-text: hsl(var(--primary));
+    --dark-docs-entry-bg: 215 20% 18%; /* Slightly lighter dark card */
+    --dark-docs-entry-border: hsl(var(--accent));
+    --dark-docs-entry-darija-text: hsl(var(--accent));
+    --dark-docs-entry-english-text: hsl(var(--secondary)/0.8);
+    --dark-docs-entry-description-text: hsl(var(--foreground)/0.8);
+    --dark-docs-code-bg: 215 20% 22%; /* Darker code block */
+    --dark-docs-code-border: hsl(var(--border));
+    --dark-docs-intro-bg: linear-gradient(135deg, hsl(var(--primary)/0.8), hsl(var(--primary)/0.6));
+    --dark-docs-intro-text: hsl(var(--primary-foreground));
+
+     /* Output Area Custom Variables */
+     --output-bg: 210 20% 95%; /* Light gray, distinct from editor */
+     --output-text: hsl(var(--foreground));
+     --output-border: hsl(var(--border)/0.7);
+     --output-error-bg: hsl(var(--destructive)/0.1);
+     --output-error-text: hsl(var(--destructive));
+     --output-error-border: hsl(var(--destructive)/0.4);
+     --output-success-bg: hsl(140 60% 95%); /* Light green */
+     --output-success-text: hsl(140 60% 30%);
+     --dark-output-bg: 215 25% 15%; /* Darker background for output */
+     --dark-output-text: hsl(var(--foreground)/0.9);
+     --dark-output-border: hsl(var(--border));
+     --dark-output-error-bg: hsl(var(--destructive)/0.15);
+     --dark-output-error-text: hsl(var(--destructive));
+     --dark-output-error-border: hsl(var(--destructive)/0.5);
+     --dark-output-success-bg: hsl(140 60% 20%); /* Darker green */
+     --dark-output-success-text: hsl(140 60% 80%);
   }
-  .dark {
+
+   .dark {
     /* Darker, more subdued theme */
-    --background: 220 15% 12%; /* Very dark blue-gray */
-    --foreground: 210 20% 95%; /* Light Gray */
-    --card: 220 15% 18%; /* Darker blue-gray card */
-    --card-foreground: 210 20% 95%;
-    --popover: 220 15% 15%; /* Darker popover */
-    --popover-foreground: 210 20% 95%;
-    --primary: 215 75% 65%; /* Slightly less intense blue */
+    --background: 215 20% 14%; /* Darker blue-gray */
+    --foreground: 210 20% 96%; /* Light Gray */
+    --card: 215 20% 20%; /* Darker blue-gray card */
+    --card-foreground: 210 20% 96%;
+    --popover: 215 20% 18%; /* Darker popover */
+    --popover-foreground: 210 20% 96%;
+    --primary: 210 70% 65%; /* Slightly brighter blue for dark mode */
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 12% 45%; /* Subdued Gray-Blue */
+    --secondary: 210 12% 50%; /* Subdued Gray-Blue */
     --secondary-foreground: 0 0% 100%;
-    --muted: 220 15% 28%; /* Dark muted blue-gray */
-    --muted-foreground: 210 15% 65%; /* Lighter gray text */
-    --accent: 30 85% 60%; /* Slightly brighter Orange for contrast */
+    --muted: 215 20% 30%; /* Dark muted blue-gray */
+    --muted-foreground: 210 15% 70%; /* Lighter gray text */
+    --accent: 35 85% 65%; /* Brighter Orange/Gold for contrast */
     --accent-foreground: 0 0% 10%; /* Dark text on accent */
     --destructive: 0 70% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 15% 30%; /* Darker border */
-    --input: 220 15% 30%;
-    --ring: 215 75% 60%; /* Slightly less intense blue ring */
-    --chart-1: 215 65% 70%;
-    --chart-2: 30 75% 65%;
-    --chart-3: 170 55% 50%;
-    --chart-4: 210 15% 60%;
-    --chart-5: 45 75% 60%;
-    --sidebar-background: 220 15% 15%; /* Darker sidebar */
-    --sidebar-foreground: 210 20% 90%; /* Lighter sidebar text */
-    --sidebar-primary: 215 75% 65%; /* Use primary color */
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 32%; /* Dark sidebar accent */
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 220 15% 28%;
-    --sidebar-ring: 215 75% 60%;
+    --border: 215 20% 35%; /* Darker border */
+    --input: 215 20% 35%;
+    --ring: 210 70% 60%; /* Slightly brighter blue ring */
+    --chart-1: 210 60% 70%;
+    --chart-2: 35 80% 70%;
+    --chart-3: 180 50% 55%;
+    --chart-4: 210 15% 65%;
+    --chart-5: 40 80% 60%;
 
-    /* Custom variables for Docs (Dark) */
-    --docs-code-bg: 220 15% 20%;
-    --docs-entry-bg: 220 15% 18%; /* Use card color */
-    --docs-category-border: 215 50% 55%;
-    --docs-entry-border: 30 70% 50%;
+    /* Sidebar specific colors (Dark) - Already defined, keeping */
+    --sidebar-background: 215 20% 15%;
+    --sidebar-foreground: 210 20% 90%;
+    --sidebar-primary: 210 70% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 20% 25%;
+    --sidebar-accent-foreground: 210 20% 95%;
+    --sidebar-border: 215 20% 22%;
+    --sidebar-ring: 210 70% 55%;
+
+     /* Use Dark Theme Docs Variables */
+    --docs-bg: var(--dark-docs-bg);
+    --docs-category-bg: var(--dark-docs-category-bg);
+    --docs-category-border: var(--dark-docs-category-border);
+    --docs-category-text: var(--dark-docs-category-text);
+    --docs-entry-bg: var(--dark-docs-entry-bg);
+    --docs-entry-border: var(--dark-docs-entry-border);
+    --docs-entry-darija-text: var(--dark-docs-entry-darija-text);
+    --docs-entry-english-text: var(--dark-docs-entry-english-text);
+    --docs-entry-description-text: var(--dark-docs-entry-description-text);
+    --docs-code-bg: var(--dark-docs-code-bg);
+    --docs-code-border: var(--dark-docs-code-border);
+    --docs-intro-bg: var(--dark-docs-intro-bg);
+    --docs-intro-text: var(--dark-docs-intro-text);
+
+     /* Use Dark Output Area Variables */
+     --output-bg: var(--dark-output-bg);
+     --output-text: var(--dark-output-text);
+     --output-border: var(--dark-output-border);
+     --output-error-bg: var(--dark-output-error-bg);
+     --output-error-text: var(--dark-output-error-text);
+     --output-error-border: var(--dark-output-error-border);
+     --output-success-bg: var(--dark-output-success-bg);
+     --output-success-text: var(--dark-output-success-text);
   }
 }
 
@@ -97,51 +164,160 @@
     /* Use the font variables defined in layout.tsx */
     font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
     @apply bg-background text-foreground;
+    /* Smooth scrolling */
+     scroll-behavior: smooth;
   }
+  /* Improve focus visibility */
+   *:focus-visible {
+      @apply ring-2 ring-ring ring-offset-2 ring-offset-background;
+   }
 }
 
+
 @layer components {
-    /* Custom styles for the docs component */
-   .docs-container .accordion-item {
-       @apply mb-4 border border-[hsl(var(--docs-category-border))] rounded-lg shadow-md overflow-hidden bg-card;
+    /* === Enhanced Documentation Styling === */
+    .docs-container {
+        @apply bg-[hsl(var(--docs-bg))] p-4 md:p-6 lg:p-8 rounded-lg shadow-lg;
+    }
+    /* Introduction section */
+    .docs-intro {
+        @apply p-6 mb-8 rounded-lg shadow-md text-center;
+        background: var(--docs-intro-bg); /* Gradient background */
+        color: hsl(var(--docs-intro-text));
+    }
+    .docs-intro h2 {
+       @apply text-3xl font-extrabold mb-2 tracking-tight;
+    }
+    .docs-intro p {
+       @apply text-lg opacity-90;
+    }
+
+   /* Accordion styles */
+   .docs-container .accordion-root {
+        @apply space-y-6; /* More space between categories */
    }
-    .docs-container .accordion-trigger {
-       @apply px-6 py-4 text-lg font-bold text-primary hover:bg-primary/10 transition-colors duration-200;
-    }
-    .docs-container .accordion-trigger:hover {
-        @apply no-underline; /* Remove underline on hover */
-    }
-    .docs-container .accordion-trigger svg {
-        @apply text-primary;
+   .docs-container .accordion-item {
+       @apply border-none rounded-xl overflow-hidden shadow-lg; /* Remove default border, more rounding, bigger shadow */
+       background: var(--docs-category-bg); /* Use gradient bg */
+       border-left: 4px solid hsl(var(--docs-category-border)); /* Colored left border */
+   }
+   .docs-container .accordion-trigger {
+       @apply flex items-center justify-between w-full px-6 py-5 text-xl font-semibold text-left transition-all duration-300 ease-in-out; /* Larger text, more padding */
+       color: hsl(var(--docs-category-text)); /* Use category text color */
+       /* hover:bg-primary/5 */ /* Subtle hover background */
+   }
+   .docs-container .accordion-trigger:hover {
+        @apply no-underline opacity-90; /* Remove underline, slight opacity change */
+   }
+   .docs-container .accordion-trigger svg { /* Chevron icon */
+        @apply h-6 w-6 transition-transform duration-300;
+        color: hsl(var(--docs-category-text));
+   }
+    .docs-container .accordion-trigger[data-state=open] svg {
+       @apply rotate-180;
     }
    .docs-container .accordion-content {
-        @apply px-6 pb-6 pt-0; /* Remove top padding */
+        @apply px-6 pb-6 pt-2 bg-card/80 backdrop-blur-sm; /* Content background distinct from trigger */
+        /* @apply bg-[hsl(var(--docs-entry-bg))] */ /* Alternative: solid background */
    }
+
+    /* Documentation entry styles */
     .docs-container .doc-entry {
-        @apply mt-4 p-4 border-l-4 border-[hsl(var(--docs-entry-border))] bg-[hsl(var(--docs-entry-bg))] rounded-r-md shadow;
+        @apply mt-4 p-5 border-l-4 rounded-r-lg shadow-md transition-shadow duration-200 hover:shadow-lg; /* More padding, shadow effect */
+        border-color: hsl(var(--docs-entry-border)); /* Use accent border color */
+        background-color: hsl(var(--docs-entry-bg)); /* Use entry background color */
     }
     .docs-container .doc-entry-header {
-        @apply flex items-baseline gap-2 mb-1;
+        @apply flex items-center gap-3 mb-2; /* Increased gap */
     }
     .docs-container .doc-entry-darija {
-       @apply font-mono font-bold text-accent text-base;
+       @apply font-mono font-bold text-lg tracking-wide; /* Larger, bolder Darija term */
+       color: hsl(var(--docs-entry-darija-text));
     }
      .docs-container .doc-entry-english {
-       @apply text-sm font-medium text-muted-foreground;
+        @apply text-sm font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground; /* Pill style badge */
+       /* color: hsl(var(--docs-entry-english-text)); */
     }
      .docs-container .doc-entry-description {
-       @apply text-sm text-foreground/80 dark:text-foreground/70 mt-1;
+       @apply text-base text-foreground/90 dark:text-foreground/85 mt-1 leading-relaxed; /* Improved readability */
+       /* color: hsl(var(--docs-entry-description-text)); */
+    }
+    .docs-container .doc-entry-usage-notes {
+       @apply text-sm text-amber-700 dark:text-amber-500 italic mt-2 p-2 bg-amber-50 dark:bg-amber-900/30 border-l-2 border-amber-400 rounded-r-sm;
     }
      .docs-container .doc-entry-example {
-       @apply mt-3;
+       @apply mt-4; /* More space before example */
     }
+
+     /* Code block specific styling */
     .docs-container .code-block {
-        @apply bg-[hsl(var(--docs-code-bg))] border border-input shadow-none rounded-md;
+        @apply bg-[hsl(var(--docs-code-bg))] border rounded-lg p-4 text-sm shadow-inner overflow-x-auto relative; /* More padding, better rounding */
+        border-color: hsl(var(--docs-code-border));
     }
+     /* Optional: Add a copy button to code blocks */
+     .docs-container .code-block button {
+        @apply absolute top-2 right-2 p-1.5 bg-muted/50 hover:bg-muted rounded-md text-muted-foreground hover:text-foreground transition-all opacity-70 hover:opacity-100;
+     }
+     .docs-container .code-block button svg {
+         @apply w-4 h-4;
+     }
+
+    /* Creator Credit Styling */
      .docs-container .creator-credit {
-        @apply mt-8 text-center text-sm text-muted-foreground font-medium;
+        @apply mt-12 text-center text-base font-medium;
+        color: hsl(var(--muted-foreground)/0.9);
      }
       .docs-container .creator-name {
-         @apply font-bold text-primary tracking-wide;
+         @apply font-bold tracking-wide text-lg;
+         /* Use a gradient text effect for the name */
+         background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
+         -webkit-background-clip: text;
+         -webkit-text-fill-color: transparent;
+         background-clip: text;
+         text-fill-color: transparent;
+         display: inline-block; /* Needed for gradient */
+     }
+
+      /* === Enhanced Output Area Styling === */
+     .output-area-card {
+         @apply border-[hsl(var(--output-border))]; /* Custom border color */
+     }
+      .output-area-card .card-header {
+         @apply bg-muted/20 dark:bg-muted/10 border-b-[hsl(var(--output-border))];
+     }
+     .output-area-card .card-content {
+         @apply bg-[hsl(var(--output-bg))]; /* Custom background color */
+     }
+      .output-area-scroll {
+          @apply p-4 font-mono text-sm; /* Use mono font */
+          color: hsl(var(--output-text)); /* Custom text color */
+      }
+     .output-area-alert.alert-destructive {
+         background-color: hsl(var(--output-error-bg));
+         color: hsl(var(--output-error-text));
+         border-color: hsl(var(--output-error-border));
+     }
+      .output-area-alert.alert-destructive .alert-title {
+         color: hsl(var(--output-error-text)); /* Ensure title matches */
+     }
+       .output-area-alert.alert-destructive .alert-description {
+         color: hsl(var(--output-error-text)/0.9); /* Slightly less intense description */
+     }
+      .output-area-placeholder {
+         @apply text-center italic py-6;
+          color: hsl(var(--muted-foreground));
+      }
+      .output-area-pre {
+         @apply whitespace-pre-wrap break-words p-3 bg-background/60 dark:bg-background/30 rounded-md border;
+         border-color: hsl(var(--border)/0.5);
+          color: hsl(var(--output-text));
+          line-height: 1.6; /* Improve readability */
+      }
+      /* Style for successful execution message if needed */
+     .output-area-success {
+         @apply p-3 mb-3 rounded-md border text-sm;
+         background-color: hsl(var(--output-success-bg));
+         color: hsl(var(--output-success-text));
+         border-color: hsl(var(--output-success-text)/0.3);
      }
 }
