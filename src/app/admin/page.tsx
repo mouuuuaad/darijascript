@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -70,7 +71,7 @@ export default function AdminPage() {
 
        // Handle specific error codes if needed
        if (error.code === 'auth/popup-closed-by-user') {
-        setError("Sign-in cancelled by user.");
+        setError("Sign-in cancelled by user."); // This message is displayed when the popup is closed.
        } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-blocked') {
             setError("Sign-in popup blocked or cancelled. Please allow popups for this site.");
        } else if (error.code === 'auth/unauthorized-domain') {
@@ -266,5 +267,3 @@ export default function AdminPage() {
     // </AuthGuard>
   );
 }
-
-    
