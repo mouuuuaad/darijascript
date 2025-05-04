@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCap
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { AlertTriangle, LogIn, LogOut, Prayer, ShieldAlert } from 'lucide-react'; // Import icons
+import { AlertTriangle, LogIn, LogOut, LayoutDashboard, ShieldAlert } from 'lucide-react'; // Import icons, replaced Prayer with LayoutDashboard
 
 interface Prayer {
   id: string;
@@ -165,7 +165,7 @@ export default function AdminPage() {
       <div className="container mx-auto p-4 md:p-8 bg-gradient-to-br from-background to-[hsl(var(--primary)/0.1)] min-h-screen text-foreground">
         <div className="flex justify-between items-center mb-6 md:mb-10 pb-4 border-b border-border/30">
           <h1 className="text-3xl md:text-4xl font-bold text-primary flex items-center gap-2">
-             <Prayer size={28} className="text-secondary"/> Admin Dashboard
+             <LayoutDashboard size={28} className="text-secondary"/> Admin Dashboard {/* Replaced Prayer with LayoutDashboard */}
           </h1>
           <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground hidden md:inline">Logged in as {user.email}</span>
