@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Editor, { Monaco, loader } from "@monaco-editor/react"; // Ensure loader is imported if used
@@ -10,8 +11,7 @@ import {
   useEffect,
   useCallback,
 } from 'react';
-import { ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'; // Import from local UI component
-import { ResizableHandle as ResizableHandleUi } from '@/components/ui/resizable'; // Keep this alias if you use the specific UI handle elsewhere
+import { ResizablePanel, ResizablePanelGroup, ResizableHandle } from '@/components/ui/resizable'; // Import from ShadCN UI
 import { DarijaDocs } from '@/components/docs/darija-docs';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
@@ -23,12 +23,21 @@ import { gsap } from 'gsap';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'; // Import DialogContent
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'; // Import SheetContent, SheetTrigger
-import { Brain, BookOpen, Play, Save, Check } from 'lucide-react'; // Import icons
+import { Brain, BookOpen, Play, Save, Check, Loader } from 'lucide-react'; // Import icons, add Loader
 
 const initialCode = `
 // Salam! Ktbo l code dyalkom hna
 
 tbe3("DarijaScript is running!");
+
+bdl arr = [1, 2, 3];
+bdl last = arr.7yed(); // Pop
+tbe3("Last element popped: " + last);
+tbe3("Array after pop: " + arr);
+
+bdl first = arr.7yedmnlwla(); // Shift
+tbe3("First element shifted: " + first);
+tbe3("Array after shift: " + arr);
 
 `;
 
@@ -60,45 +69,17 @@ const HomePage: FunctionComponent<HomePageProps> = ({}) => {
 
   // GSAP Animation Refs
    const titleRef = useRef(null);
-   const buttonRef = useRef(null);
-   const editorRef = useRef(null); // Ref for the editor panel
-   const outputRef = useRef(null); // Ref for the output panel
+   const editorSectionRef = useRef(null); // Ref for the entire editor/output section
+
 
    useEffect(() => {
      // Simple GSAP fade-in animations on mount
      gsap.fromTo(titleRef.current, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.8, ease: "power3.out", delay: 0.2 });
-     gsap.fromTo(buttonRef.current, { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.7)", delay: 0.5 });
-     gsap.fromTo(editorRef.current, { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.8, ease: "power3.out", delay: 0.7 });
-     gsap.fromTo(outputRef.current, { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.8, ease: "power3.out", delay: 0.9 });
+     gsap.fromTo(editorSectionRef.current, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 1, ease: "power3.out", delay: 0.5 });
     }, []);
 
    const handleEditorWillMount = useCallback((monaco: Monaco) => {
      setupDarijaScriptLanguage(monaco);
-      // Define a custom theme matching the app's dark theme
-     monaco.editor.defineTheme('darijaDark', {
-       base: 'vs-dark', // Start with the VS Dark theme
-       inherit: true,
-       rules: [
-         { token: 'keyword', foreground: '3BACFF' }, // Primary color for keywords
-         { token: 'support.function.builtin', foreground: '50E3C2' }, // Accent color for builtins
-         { token: 'number', foreground: '67F2D3' }, // Dual button color for numbers
-         { token: 'string', foreground: 'FFD700' }, // Gold for strings
-         { token: 'comment', foreground: '888888', fontStyle: 'italic' },
-         { token: 'identifier', foreground: 'FFFFFF' }, // White for identifiers
-         { token: 'operator', foreground: '50E3C2' }, // Accent color for operators
-         // Add more rules as needed
-       ],
-       colors: {
-         'editor.background': '#020013', // Dark background
-         'editor.foreground': '#FFFFFF', // White text
-         'editorCursor.foreground': '#50E3C2', // Accent cursor
-         'editor.lineHighlightBackground': '#0A0C2F', // Slightly lighter line highlight
-         'editorLineNumber.foreground': '#6c757d', // Muted line numbers
-         'editor.selectionBackground': '#3CACFF30', // Primary color selection (semi-transparent)
-         'editorWidget.background': '#0A0C2F', // Background for widgets like find
-         'editorWidget.border': '#3BACFF', // Primary border for widgets
-       }
-     });
    }, []);
 
    const handleEditorDidMount = useCallback((editor: monacoEditor.editor.IStandaloneCodeEditor, monaco: Monaco) => {
@@ -124,11 +105,18 @@ const HomePage: FunctionComponent<HomePageProps> = ({}) => {
     setIsRunning(true);
     setOutput([]); // Clear previous output
     const currentCode = monacoRef.current.getValue();
+
+    // Animate Run button
+    gsap.to(buttonRef.current, { scale: 0.95, duration: 0.1, yoyo: true, repeat: 1 });
+
     runCode(currentCode, outputLines => {
       setOutput(outputLines);
       setIsRunning(false);
-      // Animate output panel appearance
-      gsap.fromTo(outputRef.current, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" });
+      // Animate output panel appearance (e.g., fade in lines)
+      gsap.fromTo(".output-line", // Target individual lines if possible or the container
+          { opacity: 0, y: 5 },
+          { opacity: 1, y: 0, duration: 0.3, stagger: 0.05, ease: "power2.out" }
+      );
     });
   };
 
@@ -199,36 +187,42 @@ const HomePage: FunctionComponent<HomePageProps> = ({}) => {
          description: "The example code is ready in the editor.",
       });
      // Optional: Animate editor focus or highlight
-     gsap.fromTo(editorRef.current, { scale: 1.02 }, { scale: 1, duration: 0.3, ease: "power2.inOut" });
+     gsap.fromTo(editorContainerRef.current, { scale: 1.02 }, { scale: 1, duration: 0.3, ease: "power2.inOut" });
   };
+
+  // Ref for the Run Code button to apply GSAP animation
+  const buttonRef = useRef(null);
 
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-background to-[hsl(244,80%,6%)]">
       {/* Top Header - Title */}
-       <header ref={titleRef} className="p-3 text-center border-b border-border/20 shadow-sm">
+       <header ref={titleRef} className="p-3 text-center border-b border-border/20 shadow-sm flex-shrink-0">
         <h1 className="text-2xl font-bold text-primary tracking-wide">
            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">DarijaScript IDE</span> ✨
         </h1>
        </header>
 
 
-      {/* Main Content Area */}
-      <main className="flex-grow overflow-hidden">
-        <ResizablePanelGroup direction="horizontal" className="h-full">
+      {/* Main Content Area - Uses Flexbox for layout */}
+      {/* On medium screens and up (md:), use flex-row. On smaller screens, default is flex-col */}
+      <main ref={editorSectionRef} className="flex-grow overflow-hidden p-2 md:p-4">
+         {/* Resizable Panel Group for Desktop Layout */}
+        <ResizablePanelGroup direction="horizontal" className="h-full hidden md:flex">
           {/* Editor Panel */}
           <ResizablePanel defaultSize={60} minSize={30}>
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-full bg-card rounded-lg shadow-lg border border-border/20 overflow-hidden">
               {/* Editor Header */}
-              <div ref={buttonRef} className="flex items-center justify-between p-3 border-b bg-card text-card-foreground shadow-md">
+              <div className="flex items-center justify-between p-3 border-b border-border/30 bg-[hsl(var(--card)-foreground)/5] text-card-foreground flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <Button
+                    ref={buttonRef} // Add ref here
                     onClick={handleRunClick}
                     disabled={isRunning}
                     className="bg-button-primary-gradient text-primary-foreground hover:opacity-90 transition-opacity shadow-sm hover:shadow-lg focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                     size="sm"
                   >
-                    <Play size={16} className={cn('mr-1', isRunning ? 'animate-spin-slow' : '')}/> {/* Slow spin when running */}
+                    {isRunning ? <Loader size={16} className="mr-1 animate-spin"/> : <Play size={16} className="mr-1"/>}
                     {isRunning ? 'Running...' : 'Run Code'}
                   </Button>
                   {/* Docs Button inside Dialog */}
@@ -238,8 +232,7 @@ const HomePage: FunctionComponent<HomePageProps> = ({}) => {
                         <BookOpen size={16} className="mr-1" /> Docs
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-3xl h-[80vh] flex flex-col"> {/* Adjust size and add flex */}
-                       {/* Ensure DarijaDocs takes full height */}
+                    <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0"> {/* Remove padding */}
                        <div className="flex-grow overflow-hidden">
                            <DarijaDocs />
                        </div>
@@ -269,7 +262,7 @@ const HomePage: FunctionComponent<HomePageProps> = ({}) => {
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {isSaving && (
                       <>
-                          <Save size={14} className="animate-pulse text-primary"/> Saving...
+                          <Loader size={14} className="animate-spin text-primary"/> Saving...
                       </>
                   )}
                   {isSaved && !isSaving && (
@@ -277,68 +270,165 @@ const HomePage: FunctionComponent<HomePageProps> = ({}) => {
                           <Check size={14} className="text-secondary"/> Saved
                       </>
                   )}
+                   {!isSaving && !isSaved && (
+                      <span className="opacity-50">Auto-save active</span>
+                   )}
                 </div>
               </div>
-              {/* Content Column: Monaco Editor + Output */}
-              <ResizablePanelGroup direction="vertical" className="flex-grow">
-                <ResizablePanel defaultSize={75} minSize={25}>
-                  {/* Editor ref applied here */}
-                  <div ref={editorRef} className="h-full w-full overflow-hidden">
-                     <Editor
-                        height="100%" // Use 100% height
-                        language="darijascript"
-                        theme="darijaDark" // Use custom theme
-                        value={code}
-                        onChange={handleCodeChange}
-                        onMount={handleEditorDidMount} // Use the new handler
-                        beforeMount={handleEditorWillMount} // Pass the pre-mount setup
-                        options={{
-                          minimap: { enabled: false },
-                          fontSize: 14,
-                          scrollBeyondLastLine: false,
-                          automaticLayout: true, // Ensure editor resizes
-                          wordWrap: 'on', // Enable word wrap
-                          padding: { top: 10, bottom: 10 }, // Add some padding
-                        }}
-                      />
-                   </div>
-                </ResizablePanel>
-                 <ResizableHandleUi withHandle />
-                <ResizablePanel defaultSize={25} minSize={10}>
-                  {/* Output Panel ref applied here */}
-                  <div ref={outputRef} className="h-full flex flex-col bg-[hsl(var(--docs-code-bg))] text-sm font-mono border-t border-border">
-                    <div className="p-3 border-b border-border/50 text-foreground/80 font-semibold bg-card/50">
-                      Output (Natija)
-                    </div>
-                    <div className="flex-grow p-4 overflow-auto">
-                      {output.map((line, index) => (
-                        <pre
-                          key={index}
-                          className={cn(
-                            "whitespace-pre-wrap mb-1", // Ensure wrapping
-                            line.toLowerCase().startsWith("ghalat!") ? "text-destructive" : "text-output-success-text" // Conditional styling
-                          )}
-                        >
-                          {/* Remove 'Ghalat!:' prefix for display if present */}
-                          {line.toLowerCase().startsWith("ghalat!:") ? line.substring(7).trim() : line}
-                        </pre>
-                      ))}
-                    </div>
-                  </div>
-                </ResizablePanel>
-              </ResizablePanelGroup>
+              {/* Content Column: Monaco Editor */}
+              <div ref={editorContainerRef} className="h-full w-full overflow-hidden flex-grow">
+                 <Editor
+                    height="100%" // Use 100% height
+                    language="darijascript"
+                    theme="darijaDark" // Use custom theme
+                    value={code}
+                    onChange={handleCodeChange}
+                    onMount={handleEditorDidMount} // Use the new handler
+                    beforeMount={handleEditorWillMount} // Pass the pre-mount setup
+                    options={{
+                      minimap: { enabled: true, scale: 0.8 },
+                      fontSize: 14,
+                      scrollBeyondLastLine: false,
+                      automaticLayout: true, // Ensure editor resizes
+                      wordWrap: 'on', // Enable word wrap
+                      padding: { top: 10, bottom: 10 }, // Add some padding
+                       renderLineHighlight: "gutter",
+                      scrollbar: {
+                        verticalScrollbarSize: 10,
+                        horizontalScrollbarSize: 10,
+                        arrowSize: 12
+                       }
+                    }}
+                  />
+               </div>
             </div>
           </ResizablePanel>
 
-          {/* Removed the fixed Docs Panel */}
+           <ResizableHandle withHandle className="hidden md:flex" />
 
+           {/* Output Panel */}
+           <ResizablePanel defaultSize={40} minSize={20}>
+              <div className="h-full flex flex-col bg-[hsl(var(--docs-code-bg))] text-sm font-mono border border-border/20 rounded-lg shadow-lg overflow-hidden">
+                <div className="p-3 border-b border-border/50 text-foreground/80 font-semibold bg-card/50 flex-shrink-0">
+                  Output (Natija)
+                </div>
+                <div className="flex-grow p-4 overflow-auto">
+                  {output.map((line, index) => (
+                    <pre
+                      key={index}
+                      className={cn(
+                        "output-line whitespace-pre-wrap mb-1", // Ensure wrapping, add class for animation
+                        line.toLowerCase().startsWith("ghalat!") ? "text-destructive" : "text-output-success-text" // Conditional styling
+                      )}
+                    >
+                      {line.toLowerCase().startsWith("ghalat!:") ? line.substring(7).trim() : line}
+                    </pre>
+                  ))}
+                </div>
+              </div>
+           </ResizablePanel>
         </ResizablePanelGroup>
+
+        {/* Mobile Layout (Stacked Editor and Output) */}
+        <div className="flex flex-col h-full md:hidden space-y-4">
+            {/* Editor Section (Mobile) */}
+           <div className="flex flex-col h-[60vh] bg-card rounded-lg shadow-lg border border-border/20 overflow-hidden">
+              {/* Editor Header */}
+              <div className="flex items-center justify-between p-3 border-b border-border/30 bg-[hsl(var(--card)-foreground)/5] text-card-foreground flex-shrink-0">
+                 <div className="flex items-center gap-2">
+                   <Button
+                     ref={buttonRef}
+                     onClick={handleRunClick}
+                     disabled={isRunning}
+                     className="bg-button-primary-gradient text-primary-foreground hover:opacity-90 transition-opacity shadow-sm"
+                     size="sm"
+                   >
+                     {isRunning ? <Loader size={16} className="mr-1 animate-spin"/> : <Play size={16} className="mr-1"/>}
+                     {isRunning ? '...' : 'Run'} {/* Shorter label for mobile */}
+                   </Button>
+                    {/* Docs Dialog Trigger */}
+                   <Dialog>
+                     <DialogTrigger asChild>
+                       <Button variant="outline" size="icon" className="border-secondary/50 text-secondary hover:bg-secondary/10 w-9 h-9">
+                         <BookOpen size={16} />
+                       </Button>
+                     </DialogTrigger>
+                     <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0">
+                       <div className="flex-grow overflow-hidden">
+                           <DarijaDocs />
+                       </div>
+                    </DialogContent>
+                   </Dialog>
+                    {/* Algorithms Sheet Trigger */}
+                    <Sheet open={algorithmsSidebarOpen} onOpenChange={setAlgorithmsSidebarOpen}>
+                     <SheetTrigger asChild>
+                        <Button variant="outline" size="icon" className="border-accent/50 text-accent hover:bg-accent/10 w-9 h-9">
+                           <Brain size={16} />
+                         </Button>
+                     </SheetTrigger>
+                     <SheetContent side="left" className="w-72 p-0 border-r border-border/30 bg-sidebar">
+                         <AlgorithmsSidebar
+                             isOpen={algorithmsSidebarOpen}
+                             onClose={() => setAlgorithmsSidebarOpen(false)}
+                             onSelectAlgorithm={loadAlgorithmCode}
+                         />
+                     </SheetContent>
+                  </Sheet>
+                 </div>
+                  {/* Autosave Indicator (Mobile) */}
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  {isSaving && <Loader size={14} className="animate-spin text-primary"/>}
+                  {isSaved && !isSaving && <Check size={14} className="text-secondary"/>}
+                  </div>
+              </div>
+              {/* Editor (Mobile) */}
+               <div ref={editorContainerRef} className="h-full w-full overflow-hidden flex-grow">
+                 <Editor
+                    height="100%"
+                    language="darijascript"
+                    theme="darijaDark"
+                    value={code}
+                    onChange={handleCodeChange}
+                    onMount={handleEditorDidMount}
+                    beforeMount={handleEditorWillMount}
+                     options={{
+                       minimap: { enabled: false }, // Disable minimap on mobile
+                       fontSize: 13, // Slightly smaller font for mobile
+                       scrollBeyondLastLine: false,
+                       automaticLayout: true,
+                       wordWrap: 'on',
+                       padding: { top: 8, bottom: 8 }, // Reduced padding
+                        lineNumbers: 'off', // Hide line numbers on mobile
+                       scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8 }
+                     }}
+                  />
+               </div>
+            </div>
+
+             {/* Output Section (Mobile) */}
+             <div className="flex flex-col h-[35vh] bg-[hsl(var(--docs-code-bg))] text-sm font-mono border border-border/20 rounded-lg shadow-lg overflow-hidden">
+               <div className="p-3 border-b border-border/50 text-foreground/80 font-semibold bg-card/50 flex-shrink-0">
+                 Output (Natija)
+               </div>
+               <div className="flex-grow p-3 overflow-auto"> {/* Reduced padding */}
+                 {output.map((line, index) => (
+                   <pre
+                     key={index}
+                     className={cn(
+                        "output-line whitespace-pre-wrap mb-1 text-xs", // Smaller text on mobile
+                        line.toLowerCase().startsWith("ghalat!") ? "text-destructive" : "text-output-success-text"
+                      )}
+                   >
+                     {line.toLowerCase().startsWith("ghalat!:") ? line.substring(7).trim() : line}
+                   </pre>
+                 ))}
+               </div>
+             </div>
+        </div>
       </main>
 
-      {/* Algorithm Sidebar logic moved inside the header button Sheet */}
-
       {/* Footer */}
-      <footer className="p-2 text-center text-xs text-muted-foreground border-t border-border/20 bg-background">
+      <footer className="p-2 text-center text-xs text-muted-foreground border-t border-border/20 bg-background flex-shrink-0">
         Crafted with passion by <a href="https://github.com/MOUAADIDO" target="_blank" rel="noopener noreferrer" className="creator-name font-bold text-primary hover:text-secondary transition-colors">MOUAAD IDOUFKIR</a>
       </footer>
     </div>
