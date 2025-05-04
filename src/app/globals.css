@@ -5,73 +5,87 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%; /* Very light cool gray */
-    --foreground: 215 25% 15%; /* Dark cool gray */
-    --card: 0 0% 100%; /* White */
-    --card-foreground: 215 25% 15%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
-    --primary: 217 91% 60%; /* Strong Blue */
-    --primary-foreground: 0 0% 98%; /* White */
-    --secondary: 210 10% 40%; /* Medium Gray-Blue */
-    --secondary-foreground: 0 0% 98%; /* White */
-    --muted: 210 30% 94%; /* Lighter Gray-Blue */
+    /* Dark Blue/Gray primary scheme with a strong accent */
+    --background: 220 10% 96%; /* Lighter Gray */
+    --foreground: 220 20% 15%; /* Very Dark Blue/Gray */
+    --card: 220 10% 100%; /* White Card */
+    --card-foreground: 220 20% 15%;
+    --popover: 220 10% 100%;
+    --popover-foreground: 220 20% 15%;
+    --primary: 215 80% 50%; /* Stronger, slightly darker Blue */
+    --primary-foreground: 0 0% 100%; /* White */
+    --secondary: 210 15% 50%; /* Medium Gray-Blue */
+    --secondary-foreground: 0 0% 100%; /* White */
+    --muted: 210 20% 90%; /* Lighter Gray-Blue */
     --muted-foreground: 215 15% 55%; /* Medium-Light Gray */
-    --accent: 25 95% 53%; /* Bright Orange */
-    --accent-foreground: 0 0% 100%; /* White */
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 210 20% 88%; /* Light Gray-Blue Border */
-    --input: 210 20% 88%;
-    --ring: 217 91% 55%; /* Slightly darker blue for ring */
-    --chart-1: 217 80% 65%; /* Adjusted chart colors */
-    --chart-2: 25 85% 60%;
-    --chart-3: 160 70% 50%; /* Teal */
+    --accent: 30 90% 55%; /* Vibrant Orange */
+    --accent-foreground: 0 0% 10%; /* Dark text on accent */
+    --destructive: 0 80% 60%; /* Standard Red */
+    --destructive-foreground: 0 0% 100%;
+    --border: 210 15% 85%; /* Light Gray-Blue Border */
+    --input: 210 15% 88%; /* Slightly lighter input border */
+    --ring: 215 80% 45%; /* Slightly darker blue for ring */
+    --chart-1: 215 70% 55%; /* Adjusted chart colors */
+    --chart-2: 30 80% 60%;
+    --chart-3: 170 60% 45%; /* Teal/Greenish Blue */
     --chart-4: 210 15% 70%; /* Lighter Gray-Blue */
-    --chart-5: 45 90% 55%; /* Gold/Yellow */
+    --chart-5: 45 80% 55%; /* Gold/Yellow */
     --radius: 0.5rem;
-    --sidebar-background: 210 25% 96%; /* Slightly different light gray for sidebar */
-    --sidebar-foreground: 215 25% 25%; /* Darker gray for sidebar text */
-    --sidebar-primary: 217 91% 60%; /* Use primary color */
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 210 30% 90%; /* Muted accent for sidebar */
-    --sidebar-accent-foreground: 215 25% 10%; /* Darker text on sidebar accent */
-    --sidebar-border: 210 20% 85%;
-    --sidebar-ring: 217 91% 55%;
+    --sidebar-background: 220 15% 94%; /* Slightly darker sidebar */
+    --sidebar-foreground: 220 20% 20%; /* Darker gray for sidebar text */
+    --sidebar-primary: 215 80% 50%; /* Use primary color */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 20% 88%; /* Muted accent for sidebar */
+    --sidebar-accent-foreground: 220 20% 10%; /* Darker text on sidebar accent */
+    --sidebar-border: 210 15% 80%;
+    --sidebar-ring: 215 80% 45%;
+
+    /* Custom variables for Docs */
+    --docs-code-bg: 220 15% 92%;
+    --docs-entry-bg: 0 0% 100%;
+    --docs-category-border: 215 60% 70%;
+    --docs-entry-border: 30 80% 70%; /* Accent color for entry border */
   }
   .dark {
-    --background: 220 15% 10%; /* Very dark blue-gray */
-    --foreground: 210 20% 96%; /* Light Gray */
-    --card: 220 15% 15%; /* Darker blue-gray card */
-    --card-foreground: 210 20% 96%;
-    --popover: 220 15% 13%; /* Darker popover */
-    --popover-foreground: 210 20% 96%;
-    --primary: 217 85% 65%; /* Slightly brighter blue */
-    --primary-foreground: 0 0% 98%;
-    --secondary: 210 10% 50%; /* Lighter Gray-Blue */
-    --secondary-foreground: 0 0% 98%;
-    --muted: 220 15% 25%; /* Dark muted blue-gray */
+    /* Darker, more subdued theme */
+    --background: 220 15% 12%; /* Very dark blue-gray */
+    --foreground: 210 20% 95%; /* Light Gray */
+    --card: 220 15% 18%; /* Darker blue-gray card */
+    --card-foreground: 210 20% 95%;
+    --popover: 220 15% 15%; /* Darker popover */
+    --popover-foreground: 210 20% 95%;
+    --primary: 215 75% 65%; /* Slightly less intense blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 12% 45%; /* Subdued Gray-Blue */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 220 15% 28%; /* Dark muted blue-gray */
     --muted-foreground: 210 15% 65%; /* Lighter gray text */
-    --accent: 25 90% 60%; /* Brighter Orange */
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 70% 55%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 220 15% 25%; /* Darker border */
-    --input: 220 15% 25%;
-    --ring: 217 85% 60%; /* Brighter blue ring */
-    --chart-1: 217 75% 70%; /* Adjusted chart colors for dark */
-    --chart-2: 25 80% 65%;
-    --chart-3: 160 65% 55%;
+    --accent: 30 85% 60%; /* Slightly brighter Orange for contrast */
+    --accent-foreground: 0 0% 10%; /* Dark text on accent */
+    --destructive: 0 70% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 15% 30%; /* Darker border */
+    --input: 220 15% 30%;
+    --ring: 215 75% 60%; /* Slightly less intense blue ring */
+    --chart-1: 215 65% 70%;
+    --chart-2: 30 75% 65%;
+    --chart-3: 170 55% 50%;
     --chart-4: 210 15% 60%;
-    --chart-5: 45 85% 60%;
-    --sidebar-background: 220 15% 12%; /* Darker sidebar */
+    --chart-5: 45 75% 60%;
+    --sidebar-background: 220 15% 15%; /* Darker sidebar */
     --sidebar-foreground: 210 20% 90%; /* Lighter sidebar text */
-    --sidebar-primary: 217 85% 65%; /* Use primary color */
+    --sidebar-primary: 215 75% 65%; /* Use primary color */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 28%; /* Dark sidebar accent */
+    --sidebar-accent: 220 15% 32%; /* Dark sidebar accent */
     --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 220 15% 25%;
-    --sidebar-ring: 217 85% 60%;
+    --sidebar-border: 220 15% 28%;
+    --sidebar-ring: 215 75% 60%;
+
+    /* Custom variables for Docs (Dark) */
+    --docs-code-bg: 220 15% 20%;
+    --docs-entry-bg: 220 15% 18%; /* Use card color */
+    --docs-category-border: 215 50% 55%;
+    --docs-entry-border: 30 70% 50%;
   }
 }
 
@@ -84,4 +98,50 @@
     font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
     @apply bg-background text-foreground;
   }
+}
+
+@layer components {
+    /* Custom styles for the docs component */
+   .docs-container .accordion-item {
+       @apply mb-4 border border-[hsl(var(--docs-category-border))] rounded-lg shadow-md overflow-hidden bg-card;
+   }
+    .docs-container .accordion-trigger {
+       @apply px-6 py-4 text-lg font-bold text-primary hover:bg-primary/10 transition-colors duration-200;
+    }
+    .docs-container .accordion-trigger:hover {
+        @apply no-underline; /* Remove underline on hover */
+    }
+    .docs-container .accordion-trigger svg {
+        @apply text-primary;
+    }
+   .docs-container .accordion-content {
+        @apply px-6 pb-6 pt-0; /* Remove top padding */
+   }
+    .docs-container .doc-entry {
+        @apply mt-4 p-4 border-l-4 border-[hsl(var(--docs-entry-border))] bg-[hsl(var(--docs-entry-bg))] rounded-r-md shadow;
+    }
+    .docs-container .doc-entry-header {
+        @apply flex items-baseline gap-2 mb-1;
+    }
+    .docs-container .doc-entry-darija {
+       @apply font-mono font-bold text-accent text-base;
+    }
+     .docs-container .doc-entry-english {
+       @apply text-sm font-medium text-muted-foreground;
+    }
+     .docs-container .doc-entry-description {
+       @apply text-sm text-foreground/80 dark:text-foreground/70 mt-1;
+    }
+     .docs-container .doc-entry-example {
+       @apply mt-3;
+    }
+    .docs-container .code-block {
+        @apply bg-[hsl(var(--docs-code-bg))] border border-input shadow-none rounded-md;
+    }
+     .docs-container .creator-credit {
+        @apply mt-8 text-center text-sm text-muted-foreground font-medium;
+     }
+      .docs-container .creator-name {
+         @apply font-bold text-primary tracking-wide;
+     }
 }

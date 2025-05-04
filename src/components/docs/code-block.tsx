@@ -10,9 +10,12 @@ export function CodeBlock({ code, language = 'plaintext', className, ...props }:
   return (
     <pre
       className={cn(
-        "max-h-[400px] overflow-x-auto rounded-md border bg-background/50 p-3 font-mono text-xs text-foreground shadow-inner dark:bg-black/30",
+        // Use custom variable for background, inherit border from container
+        "max-h-[400px] overflow-x-auto rounded-md p-3 font-mono text-xs shadow-inner",
+        "bg-[hsl(var(--docs-code-bg))]", // Use CSS variable for background
+        "text-foreground/90 dark:text-foreground/80", // Slightly adjust text color
         `language-${language}`, // Class for potential syntax highlighters
-        className
+        className // Allow overrides
       )}
       {...props}
     >
