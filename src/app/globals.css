@@ -2,9 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
 
 @layer base {
   :root {
@@ -83,6 +80,8 @@ body {
     @apply border-border;
   }
   body {
+    /* Use the font variables defined in layout.tsx */
+    font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
     @apply bg-background text-foreground;
   }
 }
