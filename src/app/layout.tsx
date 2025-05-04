@@ -29,7 +29,8 @@ export default function RootLayout({
     // Add suppressHydrationWarning to potentially resolve font/style hydration issues
     <html lang="en" className={cn(geistSans.variable, geistMono.variable)} suppressHydrationWarning>
       {/* Keep antialiased, font variables applied via html tag and globals.css */}
-      <body className="antialiased">
+      {/* Add suppressHydrationWarning to body as well */}
+      <body className="antialiased" suppressHydrationWarning>
         {children}
         <Toaster />
       </body>
