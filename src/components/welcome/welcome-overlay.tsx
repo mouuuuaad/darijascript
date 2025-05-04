@@ -69,23 +69,23 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
           duration: 0.5,
           ease: 'power2.inOut',
           onComplete: () => {
-            console.log("Fade out animation complete. Calling onClose..."); // Log: Animation complete
-            setIsSubmitting(false); // Reset submitting state after animation
-            onClose(); // Call onClose prop after animation finishes
+            console.log("Fade out animation complete."); // Log: Animation complete
+            // onClose is now called in handleEnterClick *before* this animation starts
+            setIsSubmitting(false); // Reset submitting state after animation finishes
           },
         });
     } else {
          console.error("Overlay ref not found, cannot start fade out animation.");
-         // Fallback to closing immediately if animation fails
+         // Fallback if animation target doesn't exist
          setIsSubmitting(false);
-         onClose();
+         // onClose should have already been called in handleEnterClick
     }
   };
 
 
   const handleEnterClick = async () => {
     if (isSubmitting) return; // Prevent multiple submissions
-    setIsSubmitting(true); // Set submitting state
+    setIsSubmitting(true); // Set submitting state immediately
 
     // Default success message
     let toastOptions: ToastProps & { title: string; description: string; } = {
@@ -94,39 +94,56 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
        className: "toast-success"
     };
 
-    // Save prayer to Firestore if it's not empty
+    let firestorePromise: Promise<any> | null = null;
+
+    // Prepare Firestore save if prayer is not empty
     if (prayer.trim()) {
-      try {
-        const prayersCollection = collection(firestore, 'prayers');
-        await addDoc(prayersCollection, {
-          text: prayer.trim(),
-          submittedAt: serverTimestamp(), // Use server timestamp
-        });
-         toastOptions.description = `دعاءك وصل: "${prayer}". الله يقبل.`;
-      } catch (error) {
-        console.error("Error adding prayer to Firestore:", error);
-         toastOptions = {
-             title: "Ghalat!",
-             description: "وقع مشكل ملي كنا نسجلو الدعاء ديالك. حاول مرة أخرى.",
-             variant: "destructive",
-             className: "toast-error"
-         };
-      }
-    } else {
-       toastOptions = {
-          title: "دعاء؟",
-          description: "نسيتي مكتبتيش دعاء؟ ماشي مشكل، دخل.",
-           className: "toast-info"
-      };
+      const prayersCollection = collection(firestore, 'prayers');
+      firestorePromise = addDoc(prayersCollection, {
+        text: prayer.trim(),
+        submittedAt: serverTimestamp(), // Use server timestamp
+      });
     }
 
-    // Show toast *before* starting the fade out animation
+    // Show appropriate toast message immediately
+    if (prayer.trim()) {
+        toastOptions.description = `دعاءك وصل: "${prayer}". الله يقبل.`;
+    } else {
+         toastOptions = {
+            title: "دعاء؟",
+            description: "نسيتي مكتبتيش دعاء؟ ماشي مشكل، دخل.",
+             className: "toast-info"
+        };
+    }
     toast(toastOptions);
-    console.log("Toast shown. Calling startFadeOut..."); // Log: Toast shown
+    console.log("Toast shown. Calling onClose and starting fadeOut...");
 
+    // Call onClose immediately to trigger state change in parent
+    onClose();
 
-    // Start the fade out animation regardless of toast/Firestore outcome
+    // Start the fade-out animation visually
     startFadeOut();
+
+    // Wait for Firestore operation (if any) in the background
+    // and show error toast *if* it fails, without blocking UI exit
+    if (firestorePromise) {
+       try {
+          await firestorePromise;
+          // Success toast already shown
+       } catch (error) {
+          console.error("Error adding prayer to Firestore:", error);
+          // Show error toast asynchronously
+           toast({
+               title: "Ghalat!",
+               description: "وقع مشكل ملي كنا نسجلو الدعاء ديالك. حاول مرة أخرى.",
+               variant: "destructive",
+               className: "toast-error"
+           });
+           // No need to call setIsSubmitting(false) here, it's handled by animation onComplete
+       }
+    } else {
+        // If no prayer was submitted, ensure submitting state is reset by animation onComplete
+    }
   };
 
   return (
