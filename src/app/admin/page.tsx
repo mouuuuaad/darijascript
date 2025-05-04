@@ -1,11 +1,11 @@
 
-
 'use client';
 
 import { useEffect, useState } from 'react';
 import { collection, query, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
 import { firestore } from '@/lib/firebase/client';
-import { AuthGuard } from '@/components/auth/auth-guard';
+// Removed AuthGuard as authentication is handled manually
+// import { AuthGuard } from '@/components/auth/auth-guard';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { auth } from '@/lib/firebase/client';
@@ -32,7 +32,7 @@ const formatTimestamp = (timestamp: Timestamp | null): string => {
       // Consider using a consistent format like date-fns format(date, 'yyyy-MM-dd HH:mm:ss') if needed.
       return date.toLocaleString();
     } catch (e) {
-      console.error("Error converting timestamp:", e, timestamp);
+      console.error("AdminPage: Error converting timestamp:", e, timestamp);
       return 'Invalid Date Format';
     }
   }
@@ -52,22 +52,25 @@ export default function AdminPage() {
   const handleLogin = async () => {
     setError(null); // Clear previous errors
     const provider = new GoogleAuthProvider();
+    console.log("AdminPage: Initiating Google sign-in...");
     try {
       const result: UserCredential = await signInWithPopup(auth, provider);
+      console.log("AdminPage: Google sign-in successful. User:", result.user.email);
       // Check if the logged-in user's email is the allowed admin email
       if (result.user.email !== ALLOWED_ADMIN_EMAIL) {
         // If not the allowed email, sign them out immediately and show an error
+        console.warn(`AdminPage: Unauthorized login attempt by ${result.user.email}. Signing out.`);
         await signOut(auth);
-        console.warn(`Unauthorized login attempt by ${result.user.email}`);
         setError(`Access denied. Only ${ALLOWED_ADMIN_EMAIL} can log in.`);
       } else {
         // Allowed user logged in successfully
-        console.log(`Admin ${result.user.email} logged in successfully.`);
+        console.log(`AdminPage: Admin ${result.user.email} logged in successfully.`);
+        //setError(null); // Ensure no error message persists after successful login
       }
     } catch (error: any) {
-      console.error("Error during Google sign-in:", error);
-      console.error("Error Code:", error.code);
-      console.error("Error Message:", error.message);
+      console.error("AdminPage: Error during Google sign-in:", error);
+      console.error("AdminPage: Error Code:", error.code);
+      console.error("AdminPage: Error Message:", error.message);
 
        // Handle specific error codes if needed
        if (error.code === 'auth/popup-closed-by-user') {
@@ -89,10 +92,12 @@ export default function AdminPage() {
   // Logout
   const handleLogout = async () => {
     setError(null); // Clear errors on logout
+    console.log("AdminPage: Logging out...");
     try {
       await signOut(auth);
+        console.log("AdminPage: Logout successful.");
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error("AdminPage: Error signing out:", error);
        setError("Failed to sign out.");
     }
   };
@@ -102,7 +107,10 @@ export default function AdminPage() {
     // Only fetch prayers if the user is logged in *and* has the allowed email
     // The check in handleLogin ensures only the allowed user can stay logged in,
     // but this adds an extra layer of security.
-    if (user && user.email === ALLOWED_ADMIN_EMAIL) {
+    console.log("AdminPage useEffect: Checking user state. Loading:", authLoading, "User:", user?.email);
+
+    if (!authLoading && user && user.email === ALLOWED_ADMIN_EMAIL) {
+      console.log("AdminPage useEffect: Authorized admin user found. Setting up Firestore listener.");
       setLoadingPrayers(true);
       setError(null); // Clear previous errors
       const prayersCollection = collection(firestore, 'prayers');
@@ -110,45 +118,68 @@ export default function AdminPage() {
       const q = query(prayersCollection, orderBy('submittedAt', 'desc'));
 
       // Set up a real-time listener
+       console.log("AdminPage useEffect: Attaching onSnapshot listener to 'prayers' collection.");
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        console.log(`AdminPage onSnapshot: Received ${querySnapshot.size} documents.`);
         const prayersData: Prayer[] = [];
         querySnapshot.forEach((doc) => {
            // Defensive check: Ensure data exists and has expected fields before pushing
            const data = doc.data();
-           if (data && (data.text !== undefined) && (data.submittedAt !== undefined)) {
+           // Log the raw data for debugging
+           // console.log(`AdminPage onSnapshot: Processing doc ${doc.id}, Data:`, data);
+           if (data && (data.text !== undefined || data.text === null) && (data.submittedAt !== undefined || data.submittedAt === null)) {
                 // Add a default for text if it happens to be null/undefined
                 const prayerText = data.text ?? "No text submitted";
                 // Ensure submittedAt is a Timestamp or null
-                const submittedAt = data.submittedAt instanceof Timestamp ? data.submittedAt : null;
+                 const submittedAt = data.submittedAt instanceof Timestamp ? data.submittedAt : (data.submittedAt === null ? null : new Timestamp(0,0)); // Convert null or provide default if invalid
+                 // Log valid prayer data being pushed
+                 // console.log(`AdminPage onSnapshot: Adding prayer - ID: ${doc.id}, Text: ${prayerText}, Timestamp: ${submittedAt?.toDate() ?? 'null'}`);
                 prayersData.push({ id: doc.id, text: prayerText, submittedAt: submittedAt });
            } else {
-               console.warn("Skipping document with missing data:", doc.id, data);
+               console.warn("AdminPage onSnapshot: Skipping document with missing data:", doc.id, data);
            }
         });
         setPrayers(prayersData);
         setLoadingPrayers(false); // Prayers loaded
+         console.log("AdminPage onSnapshot: Prayer state updated. Loading finished.");
       }, (err) => {
-          console.error("Error fetching prayers:", err);
-          setError("Failed to load prayers. Please check your Firestore connection and permissions.");
+          console.error("AdminPage onSnapshot Error: Failed to fetch prayers:", err);
+          // Check for permission denied errors specifically
+          if ((err as any).code === 'permission-denied') {
+              setError("Failed to load prayers: Permission Denied. Please check your Firestore Security Rules. Ensure the authenticated admin user has read access to the 'prayers' collection.");
+               console.error("Firestore Security Rules Tip: Ensure your rules allow reads for the authenticated admin user, e.g., `allow read: if request.auth != null && request.auth.token.email == 'YOUR_ADMIN_EMAIL';`");
+          } else {
+              setError("Failed to load prayers. Please check your Firestore connection and permissions.");
+          }
           setLoadingPrayers(false); // Stop loading even on error
       });
 
-      // Cleanup listener on unmount or when user logs out
-      return () => unsubscribe();
-    } else {
-      setPrayers([]); // Clear prayers if user logs out or is not the allowed admin
-      setLoadingPrayers(false); // Not loading if not logged in or not authorized
-      if (user && user.email !== ALLOWED_ADMIN_EMAIL) {
-          // This case shouldn't happen if handleLogin works correctly, but as a fallback:
-          setError("Unauthorized access.");
-          handleLogout(); // Force logout if somehow an unauthorized user reaches here
-      }
-    }
-  }, [user]); // Re-run effect when user changes
+      // Cleanup listener on unmount or when user logs out/changes
+       console.log("AdminPage useEffect: Returning cleanup function for listener.");
+      return () => {
+         console.log("AdminPage useEffect Cleanup: Unsubscribing from Firestore listener.");
+         unsubscribe();
+      };
+    } else if (!authLoading) { // Only clear/reset if auth is done loading
+         console.log("AdminPage useEffect: User not logged in or not authorized admin. Clearing prayers and stopping loading.");
+         setPrayers([]); // Clear prayers if user logs out or is not the allowed admin
+         setLoadingPrayers(false); // Not loading if not logged in or not authorized
+         if (user && user.email !== ALLOWED_ADMIN_EMAIL) {
+             // This case shouldn't happen if handleLogin works correctly, but as a fallback:
+             console.warn(`AdminPage useEffect: Unauthorized user (${user.email}) detected after auth check. Forcing logout.`);
+             setError("Unauthorized access.");
+             handleLogout(); // Force logout if somehow an unauthorized user reaches here
+         }
+     } else {
+         // Auth is still loading, do nothing yet
+         console.log("AdminPage useEffect: Auth still loading...");
+     }
+  }, [user, authLoading]); // Re-run effect when user or authLoading changes
 
 
   // Loading state for authentication check
   if (authLoading) {
+     console.log("AdminPage: Displaying auth loading skeleton.");
      return (
         <div className="flex justify-center items-center h-screen bg-background">
              <Skeleton className="h-12 w-12 rounded-full bg-primary/20 animate-pulse" />
@@ -158,6 +189,7 @@ export default function AdminPage() {
 
   // If user is not authenticated, show login button
   if (!user) {
+    console.log("AdminPage: User not authenticated. Displaying login card.");
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-background to-[hsl(var(--primary)/0.1)] p-4">
          <Card className="w-full max-w-md bg-card/90 backdrop-blur-sm border-border/50 shadow-xl">
@@ -190,8 +222,26 @@ export default function AdminPage() {
     );
   }
 
+   // This should theoretically not be reached if handleLogin forces logout, but handle it defensively.
+  if (user.email !== ALLOWED_ADMIN_EMAIL) {
+      console.warn(`AdminPage: Rendering reached with unauthorized user ${user.email}. Forcing logout and showing error.`);
+      //setError("Unauthorized access. Logging out."); // Set error message
+      handleLogout(); // Attempt logout
+      // Display a message indicating unauthorized access while logout proceeds.
+      // You might want a more robust loading or error state here.
+      return (
+           <div className="flex flex-col items-center justify-center min-h-screen bg-destructive/10 p-4 text-destructive">
+               <ShieldAlert size={48} className="mb-4" />
+               <p className="text-lg font-semibold">Unauthorized Access</p>
+               <p>You are not authorized to view this page. Logging out...</p>
+               {error && <p className="mt-2 text-sm">{error}</p>} {/* Show any specific error */}
+           </div>
+      );
+  }
+
 
   // If user is authenticated AND is the allowed admin, show the admin dashboard
+  console.log("AdminPage: Authorized admin user authenticated. Displaying dashboard.");
   return (
     // <AuthGuard> // AuthGuard can still be used, but the primary check is now email-based
       <div className="container mx-auto p-4 md:p-8 bg-gradient-to-br from-background to-[hsl(var(--primary)/0.1)] min-h-screen text-foreground">
@@ -207,11 +257,19 @@ export default function AdminPage() {
           </div>
         </div>
 
-         {error && !error.startsWith("Access denied") && ( // Don't show access denied error here again
+         {error && !error.startsWith("Access denied") && !error.includes("Permission Denied") && ( // Don't show access denied/permission error here again
               <div className="mb-4 p-3 bg-destructive/10 border border-destructive/50 text-destructive rounded-md text-sm flex items-center gap-2">
                   <AlertTriangle size={16}/> {error}
               </div>
           )}
+           {error && error.includes("Permission Denied") && ( // Show specific permission error more prominently
+                <div className="mb-4 p-3 bg-destructive/10 border border-destructive/50 text-destructive rounded-md text-sm">
+                     <p className="font-semibold flex items-center gap-2"><AlertTriangle size={16}/> Permission Denied</p>
+                     <p className="mt-1">Could not load prayers. Please check your Firestore Security Rules in the Firebase Console.</p>
+                     <p className="mt-1 text-xs">Ensure the rule for the 'prayers' collection allows read access for authenticated users with the email: <strong>{ALLOWED_ADMIN_EMAIL}</strong>.</p>
+                     <p className="mt-1 text-xs">Example rule snippet: <code>match /prayers/{prayerId} {'{'} allow read: if request.auth != null && request.auth.token.email == '{ALLOWED_ADMIN_EMAIL}'; {'}'}</code></p>
+                 </div>
+            )}
 
         <Card className="bg-card/90 border-border/50 shadow-lg backdrop-blur-sm">
             <CardHeader>
@@ -229,14 +287,13 @@ export default function AdminPage() {
                        </TableHeader>
                        <TableBody>
                          {loadingPrayers ? (
-                           // Show Skeleton loaders while prayers are loading
-                           Array.from({ length: 5 }).map((_, index) => (
-                             <TableRow key={index}>
-                               <TableCell><Skeleton className="h-4 w-full bg-muted/40" /></TableCell>
-                               <TableCell className="text-right"><Skeleton className="h-4 w-24 ml-auto bg-muted/40" /></TableCell>
-                             </TableRow>
-                           ))
-                           // Check if prayers is an array before mapping
+                            // Show Skeleton loaders while prayers are loading
+                            Array.from({ length: 5 }).map((_, index) => (
+                              <TableRow key={`skeleton-${index}`}>
+                                <TableCell><Skeleton className="h-4 w-full bg-muted/40" /></TableCell>
+                                <TableCell className="text-right"><Skeleton className="h-4 w-24 ml-auto bg-muted/40" /></TableCell>
+                              </TableRow>
+                            ))
                          ) : Array.isArray(prayers) && prayers.length > 0 ? (
                            prayers.map((prayer) => (
                              <TableRow key={prayer.id} className="hover:bg-muted/20 transition-colors">

@@ -61,7 +61,7 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
   }, []);
 
   const startFadeOut = () => {
-    console.log("Starting fade out animation..."); // Log: Start animation
+    console.log("WelcomeOverlay: Starting fade out animation..."); // Log: Start animation
     // Ensure overlayRef.current exists before animating
     if (overlayRef.current) {
         gsap.to(overlayRef.current, {
@@ -69,15 +69,15 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
           duration: 0.5,
           ease: 'power2.inOut',
           onComplete: () => {
-            console.log("Fade out animation complete."); // Log: Animation complete
+            console.log("WelcomeOverlay: Fade out animation complete."); // Log: Animation complete
             // onClose is now called in handleEnterClick *before* this animation starts
-            setIsSubmitting(false); // Reset submitting state after animation finishes
+             // setIsSubmitting(false); // Reset submitting state should be done AFTER potential firestore op completes or fails
           },
         });
     } else {
-         console.error("Overlay ref not found, cannot start fade out animation.");
+         console.error("WelcomeOverlay: Overlay ref not found, cannot start fade out animation.");
          // Fallback if animation target doesn't exist
-         setIsSubmitting(false);
+         setIsSubmitting(false); // Reset state if animation fails immediately
          // onClose should have already been called in handleEnterClick
     }
   };
@@ -86,6 +86,7 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
   const handleEnterClick = async () => {
     if (isSubmitting) return; // Prevent multiple submissions
     setIsSubmitting(true); // Set submitting state immediately
+    console.log("WelcomeOverlay: Enter button clicked. Submitting:", prayer.trim() !== '');
 
     // Default success message
     let toastOptions: ToastProps & { title: string; description: string; } = {
@@ -98,27 +99,40 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
 
     // Prepare Firestore save if prayer is not empty
     if (prayer.trim()) {
-      const prayersCollection = collection(firestore, 'prayers');
-      firestorePromise = addDoc(prayersCollection, {
-        text: prayer.trim(),
-        submittedAt: serverTimestamp(), // Use server timestamp
-      });
-    }
-
-    // Show appropriate toast message immediately
-    if (prayer.trim()) {
-        toastOptions.description = `دعاءك وصل: "${prayer}". الله يقبل.`;
+      try {
+         console.log("WelcomeOverlay: Attempting to add prayer to Firestore...");
+         const prayersCollection = collection(firestore, 'prayers');
+         firestorePromise = addDoc(prayersCollection, {
+           text: prayer.trim(),
+           submittedAt: serverTimestamp(), // Use server timestamp
+         });
+         console.log("WelcomeOverlay: addDoc called for Firestore.");
+         toastOptions.description = `دعاءك وصل: "${prayer.trim()}". الله يقبل.`;
+      } catch (error) {
+          console.error("WelcomeOverlay: Error PREPARING addDoc:", error);
+          setIsSubmitting(false); // Allow retry if setup failed
+          toast({
+              title: "Ghalat!",
+              description: "وقع مشكل فني قبل ما نصيفطو الدعاء. حاول مرة أخرى.",
+              variant: "destructive",
+              className: "toast-error"
+          });
+          return; // Stop execution
+      }
     } else {
+         console.log("WelcomeOverlay: No prayer text entered.");
          toastOptions = {
             title: "دعاء؟",
             description: "نسيتي مكتبتيش دعاء؟ ماشي مشكل، دخل.",
              className: "toast-info"
         };
     }
-    toast(toastOptions);
-    console.log("Toast shown. Calling onClose and starting fadeOut...");
 
-    // Call onClose immediately to trigger state change in parent
+    // Show appropriate toast message immediately (optimistic UI)
+    toast(toastOptions);
+    console.log("WelcomeOverlay: Toast shown. Calling onClose and starting fadeOut...");
+
+    // Call onClose immediately to trigger state change in parent and allow UI transition
     onClose();
 
     // Start the fade-out animation visually
@@ -129,20 +143,23 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
     if (firestorePromise) {
        try {
           await firestorePromise;
+          console.log("WelcomeOverlay: Firestore prayer added successfully.");
           // Success toast already shown
        } catch (error) {
-          console.error("Error adding prayer to Firestore:", error);
+          console.error("WelcomeOverlay: Error ADDING prayer to Firestore:", error);
           // Show error toast asynchronously
            toast({
                title: "Ghalat!",
-               description: "وقع مشكل ملي كنا نسجلو الدعاء ديالك. حاول مرة أخرى.",
+               description: "وقع مشكل ملي كنا نسجلو الدعاء ديالك. تأكد من الكونيكسيون أو راجع قوانين الأمان ديال Firestore.",
                variant: "destructive",
                className: "toast-error"
            });
-           // No need to call setIsSubmitting(false) here, it's handled by animation onComplete
+       } finally {
+           setIsSubmitting(false); // Reset submitting state regardless of Firestore success/failure AFTER the operation
        }
     } else {
-        // If no prayer was submitted, ensure submitting state is reset by animation onComplete
+        // If no prayer was submitted, reset submitting state immediately
+        setIsSubmitting(false);
     }
   };
 
@@ -180,6 +197,7 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
                    onChange={(e) => setPrayer(e.target.value)}
                    disabled={isSubmitting} // Disable input while submitting
                    className="pl-10 bg-input border-border focus:ring-primary focus:border-primary"
+                   aria-label="Prayer input" // Add aria-label for accessibility
                  />
              </div>
            </div>
@@ -188,7 +206,10 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
                <Button
                  onClick={handleEnterClick}
                  disabled={isSubmitting} // Disable button while submitting
-                 className="bg-button-primary-gradient text-primary-foreground text-lg px-8 py-3 rounded-lg shadow-lg hover:opacity-90 transition-all duration-300 hover:shadow-primary/40 transform hover:-translate-y-1 focus:ring-4 focus:ring-primary/50"
+                 className={cn(
+                    "bg-button-primary-gradient text-primary-foreground text-lg px-8 py-3 rounded-lg shadow-lg hover:opacity-90 transition-all duration-300 hover:shadow-primary/40 transform hover:-translate-y-1 focus:ring-4 focus:ring-primary/50",
+                    isSubmitting && "cursor-not-allowed opacity-70" // Style disabled state
+                 )}
                  size="lg"
                >
                  {isSubmitting ? (
@@ -207,6 +228,7 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
                     variant="link"
                     className="text-muted-foreground hover:text-primary transition-colors text-xs"
                     size="sm"
+                    aria-label="Admin Login"
                   >
                      <Shield size={14} className="mr-1" /> Admin Login
                   </Button>
