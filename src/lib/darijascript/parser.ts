@@ -15,7 +15,7 @@ interface Token {
 // --- AST Node Interface ---
 // Defines the structure of nodes in the Abstract Syntax Tree
 export interface ASTNode {
-  type: string; // Node type, e.g., 'Program', 'VariableDeclaration', 'BinaryExpression', 'ObjectExpression', 'Property'
+  type: string; // Node type, e.g., 'Program', 'VariableDeclaration', 'BinaryExpression', 'ObjectExpression', 'Property', 'ThrowStatement'
   line: number;   // Line number corresponding to the start of the node/token
   column: number; // Column number corresponding to the start of the node/token
 
@@ -138,6 +138,7 @@ class Parser {
      if (this.matchValue('KEYWORD', 'rj3')) return this.parseReturnStatement();
      if (this.matchValue('KEYWORD', 'wa9f')) return this.parseBreakStatement();
      if (this.matchValue('KEYWORD', 'kamml')) return this.parseContinueStatement();
+     if (this.matchValue('KEYWORD', 'rmmi')) return this.parseThrowStatement(); // Add throw statement parsing
      if (this.checkValue('PUNCTUATION', '{')) return this.parseBlockStatement();
      return this.parseExpressionStatement();
   }
@@ -238,20 +239,49 @@ class Parser {
         // 'wa9ila' must be followed by a condition (like 'ila')
         const elseIfStartToken = this.previous();
         // Recursively parse the next 'if' statement structure started by 'wa9ila'
+        // We directly call parseIfStatement but need to handle the 'wa9ila' token already being consumed.
+        // Instead, let's parse the condition and body, and construct the nested IfStatement manually.
         this.consumeValue('PUNCTUATION', '(', "Kan tsnna '(' ba3d 'wa9ila'.");
         const elseIfTest = this.parseExpression();
         this.consumeValue('PUNCTUATION', ')', "Kan tsnna ')' ba3d condition dyal 'wa9ila'.");
         const elseIfConsequent = this.parseStatement();
 
         let elseIfAlternate: ASTNode | undefined = undefined;
-        if (this.matchValue('KEYWORD', 'ella')) {
-             if (this.checkValue('KEYWORD', 'wa9ila')) { throw this.error(this.peek(), "'wa9ila' ma ymknch tji mora 'ella'."); }
-             elseIfAlternate = this.parseStatement();
-        } else if (this.matchValue('KEYWORD', 'wa9ila')) { // Nested 'else if'
-             elseIfAlternate = this.parseIfStatement(); // Re-use parseIfStatement for the next 'wa9ila'
-        }
+         // The 'else' or 'else if' part for the 'wa9ila' block
+         if (this.matchValue('KEYWORD', 'ella')) {
+            if (this.checkValue('KEYWORD', 'wa9ila')) { throw this.error(this.peek(), "'wa9ila' ma ymknch tji mora 'ella'."); }
+            elseIfAlternate = this.parseStatement();
+         } else if (this.matchValue('KEYWORD', 'wa9ila')) {
+             // Re-enter the 'else if' logic, conceptually like calling parseIfStatement again
+             // But to avoid consuming 'wa9ila' twice, we do it manually here
+             // We've already consumed 'wa9ila', so just parse the condition and body again
+             this.consumeValue('PUNCTUATION', '(', "Kan tsnna '(' ba3d 'wa9ila'.");
+             const nestedElseIfTest = this.parseExpression();
+             this.consumeValue('PUNCTUATION', ')', "Kan tsnna ')' ba3d condition dyal 'wa9ila'.");
+             const nestedElseIfConsequent = this.parseStatement();
+             // Continue the chain for the nested alternate
+             let nestedElseIfAlternate: ASTNode | undefined = undefined;
+             if (this.matchValue('KEYWORD', 'ella')) {
+                 if (this.checkValue('KEYWORD', 'wa9ila')) { throw this.error(this.peek(), "'wa9ila' ma ymknch tji mora 'ella'."); }
+                 nestedElseIfAlternate = this.parseStatement();
+             } else if (this.matchValue('KEYWORD', 'wa9ila')) {
+                 // If another 'wa9ila', recursively call parseIfStatement
+                 elseIfAlternate = this.parseIfStatement(); // This recursive call is needed here
+             }
+             // Construct the nested 'wa9ila' node
+             elseIfAlternate = {
+                 type: 'IfStatement',
+                 test: nestedElseIfTest,
+                 consequent: nestedElseIfConsequent,
+                 alternate: nestedElseIfAlternate,
+                 line: this.previous().line, // line of the 'wa9ila' keyword
+                 column: this.previous().column
+             };
 
-        // Construct the 'else if' node as a nested IfStatement in the alternate position
+         }
+
+
+        // Construct the 'wa9ila' node as a nested IfStatement in the alternate position
         alternate = {
             type: 'IfStatement',
             test: elseIfTest,
@@ -373,11 +403,11 @@ class Parser {
           let test: ASTNode | null = null;
           let caseStartToken: Token;
           // Use checkValue instead of matchValue for 7ala and 3adi because they start with numbers
-          if (this.checkValue('KEYWORD', '7ala')) {
+          if (this.checkKeywordValue('7ala')) { // Use checkKeywordValue
               this.advance(); // Consume '7ala'
               caseStartToken = this.previous();
               test = this.parseExpression();
-          } else if (this.checkValue('KEYWORD', '3adi')) {
+          } else if (this.checkKeywordValue('3adi')) { // Use checkKeywordValue
               this.advance(); // Consume '3adi'
                caseStartToken = this.previous();
               test = null;
@@ -386,7 +416,7 @@ class Parser {
           }
           this.consumeValue('PUNCTUATION', ':', "Kan tsnna ':' ba3d '7ala'/'3adi'.");
           const consequent: ASTNode[] = [];
-          while (!this.isAtEnd() && !this.checkValue('PUNCTUATION', '}') && !this.checkValue('KEYWORD', '7ala') && !this.checkValue('KEYWORD', '3adi')) {
+          while (!this.isAtEnd() && !this.checkValue('PUNCTUATION', '}') && !this.checkKeywordValue('7ala') && !this.checkKeywordValue('3adi')) {
               const stmt = this.parseDeclaration() || this.parseStatement();
               if (stmt) { consequent.push(stmt); }
               else if (!this.isAtEnd()) { throw this.error(this.peek(), "Statement machi s7i7 f west case dyal switch."); }
@@ -433,6 +463,20 @@ class Parser {
         }
         return { type: 'ContinueStatement', line: startToken.line, column: startToken.column };
    }
+
+    parseThrowStatement(): ASTNode {
+       const startToken = this.previous(); // 'rmmi' token
+       // 'rmmi' keyword is followed directly by an expression
+       const argument = this.parseExpression();
+        // Semicolon is optional at the end of the program or before '}'
+        if (this.checkValue('PUNCTUATION', ';')) {
+            this.advance();
+        } else if (!this.isAtEnd() && !this.checkValue('PUNCTUATION', '}')) {
+            throw this.error(this.peek(), "Khass ';' wella '}' ba3d rmmi statement.");
+        }
+       return { type: 'ThrowStatement', argument, line: startToken.line, column: startToken.column };
+   }
+
 
    // --- Expression Parsing (Operator Precedence) ---
 
@@ -822,7 +866,7 @@ class Parser {
                     switch(this.peek().value) {
                         case 'tabit': case 'bdl': case 'dala': case 'ila': case 'wa9ila': case 'douz':
                         case 'madamt': case 'dir': case 'jrb': case 'bdl3la':
-                        case 'rj3': case 'wa9f': case 'kamml': // Note: 7ala/3adi might not be good sync points
+                        case 'rj3': case 'wa9f': case 'kamml': case 'rmmi': // Note: 7ala/3adi might not be good sync points
                             return;
                     } break;
                  case 'PUNCTUATION':
@@ -839,4 +883,5 @@ export function parse(tokens: Token[]): ASTNode {
   const parser = new Parser(tokens);
   return parser.parse();
 }
+
 

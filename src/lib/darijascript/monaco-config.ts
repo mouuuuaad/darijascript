@@ -14,7 +14,7 @@ export function setupDarijaScriptLanguage(monaco: typeof monacoEditor) {
     keywords: [
       'tabit', 'bdl', 'ila', 'ella', 'wa9ila', 'douz', 'madamt', 'dir',
       'wa9f', 'kamml', 'dala', 'rj3', 'jrb', 'msk', 'fakhr',
-      'bdl3la', '7ala', '3adi', 'mnin', 'hta', // Added mnin, hta
+      'bdl3la', '7ala', '3adi', 'mnin', 'hta', 'rmmi' // Added rmmi as keyword
     ],
     // Language Constants/Literals
     constants: [
@@ -27,7 +27,7 @@ export function setupDarijaScriptLanguage(monaco: typeof monacoEditor) {
     ],
     // Built-in Functions/Objects (Commonly used)
     builtins: [
-        'tbe3', 'nadi', 'sowel', 'tsawal', 'ghlat', 'nbehh', 'rmmi', // Console, alerts, throw
+        'tbe3', 'nadi', 'sowel', 'tsawal', 'ghlat', 'nbehh', // Console, alerts (rmmi removed)
         't7t', 'fo9', 'dour', 'tsarraf', 'kbar', 'sghar', 'mnfi', 'rf3', 'jdr', // Math
         'ns', 'kbr7rf', 'sghr7rf', 'kayn', 'twil', // String methods & property
         'zid', '7yed', '7yedmnlwla', 'zidfllwla', 'dwr', 'n9i', 'lfech', 'l9a', 'lmmaj', // Array methods
@@ -79,11 +79,13 @@ export function setupDarijaScriptLanguage(monaco: typeof monacoEditor) {
         // strings
         [/"([^"\\]|\\.)*$/, 'string.invalid' ], // non-teminated string
         [/"/,  { token: 'string.quote', bracket: '@open', next: '@string' } ],
+        [/'([^'\\]|\\.)*$/, 'string.invalid' ], // non-teminated string
+        [/'/,  { token: 'string.quote', bracket: '@open', next: '@stringsingle' } ],
 
         // characters (less common, but keep for robustness)
-        [/'[^\\']'/, 'string'],
-        [/(')(@escapes)(')/, ['string','string.escape','string']],
-        [/'/, 'string.invalid']
+       // [/'[^\\']'/, 'string'], // Removed as single quotes are for strings now
+       // [/(')(@escapes)(')/, ['string','string.escape','string']], // Removed
+       // [/'/, 'string.invalid'] // Removed
       ],
 
       comment: [
@@ -98,6 +100,12 @@ export function setupDarijaScriptLanguage(monaco: typeof monacoEditor) {
         [/@escapes/, 'string.escape'],
         [/\\./,      'string.escape.invalid'],
         [/"/,        { token: 'string.quote', bracket: '@close', next: '@pop' } ]
+      ],
+       stringsingle: [ // Added state for single-quoted strings
+        [/[^\\']+/,  'string'],
+        [/@escapes/, 'string.escape'],
+        [/\\./,      'string.escape.invalid'],
+        [/'/,        { token: 'string.quote', bracket: '@close', next: '@pop' } ]
       ],
 
       whitespace: [
@@ -166,7 +174,7 @@ export function setupDarijaScriptLanguage(monaco: typeof monacoEditor) {
                 ...[
                     'tabit', 'bdl', 'ila', 'ella', 'wa9ila', 'douz', 'madamt', 'dir',
                     'wa9f', 'kamml', 'dala', 'rj3', 'jrb', 'msk', 'fakhr',
-                    'bdl3la', '7ala', '3adi', 'mnin', 'hta'
+                    'bdl3la', '7ala', '3adi', 'mnin', 'hta', 'rmmi'
                   ].map(k => createCompletionItem(k, monaco.languages.CompletionItemKind.Keyword, k, "DarijaScript Keyword")),
 
                 // Language Constants/Literals
@@ -183,7 +191,7 @@ export function setupDarijaScriptLanguage(monaco: typeof monacoEditor) {
                 createCompletionItem('tsawal', monaco.languages.CompletionItemKind.Function, 'tsawal("${1:Confirm message}")', 'tsawal(message)', 'Displays a confirmation box.'),
                 createCompletionItem('ghlat', monaco.languages.CompletionItemKind.Function, 'ghlat($1)', 'ghlat(...args)', 'Prints arguments as an error.'),
                 createCompletionItem('nbehh', monaco.languages.CompletionItemKind.Function, 'nbehh($1)', 'nbehh(...args)', 'Prints arguments as a warning.'),
-                createCompletionItem('rmmi', monaco.languages.CompletionItemKind.Function, 'rmmi(${1:error})', 'rmmi(error)', 'Throws an error.'),
+                // rmmi removed from function completion
                 createCompletionItem('mfatih', monaco.languages.CompletionItemKind.Function, 'mfatih(${1:object})', 'mfatih(obj)', 'Returns object keys.'),
                 createCompletionItem('qiyam', monaco.languages.CompletionItemKind.Function, 'qiyam(${1:object})', 'qiyam(obj)', 'Returns object values.'),
                 // Add more built-ins with simple signatures as needed...
@@ -250,5 +258,6 @@ export function setupDarijaScriptLanguage(monaco: typeof monacoEditor) {
 
     console.log(`DarijaScript language (${languageId}) configured for Monaco.`);
 }
+
 
 

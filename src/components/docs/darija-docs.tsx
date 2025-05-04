@@ -27,6 +27,7 @@ const documentation: { [category: string]: DocEntry[] } = {
     { darija: 'jdid', english: 'new', description: 'Create an instance of an object constructor (e.g., `wa9t`).', example: 'bdl today = jdid wa9t(); // Creates a new Date object using the wa9t constructor' },
     { darija: 'hadi', english: 'this', description: 'Refers to the current execution context (object). Behavior is similar to JavaScript `this`.', usageNotes: 'The value of `hadi` depends on how a function is called.' },
     { darija: 'no3', english: 'typeof', description: 'Returns a string indicating the data type of a variable or value.', example: 'tbe3(no3 123); // "number"\ntbe3(no3 "hello"); // "string"\ntbe3(no3 farkha); // "object" (JS behavior)\ntbe3(no3 mchmcha); // "undefined"' },
+    { darija: 'rmmi', english: 'throw', description: 'Throw a user-defined exception, interrupting normal execution. Followed by an expression.', example: 'ila (x < 0) {\n  rmmi "Value cannot be negative."; // Note: No parentheses\n}' },
   ],
   "Control Flow (Tahaqqom)": [
     { darija: 'ila', english: 'if', description: 'Execute a code block *only if* a condition evaluates to `s7i7`.', example: 'bdl age = 20;\nila (age >= 18) {\n  tbe3("You can enter.");\n}' },
@@ -56,7 +57,7 @@ const documentation: { [category: string]: DocEntry[] } = {
     { darija: 'tsawal()', english: 'confirm()', description: 'Display a dialog box with a message and OK/Cancel buttons (browser-specific). Returns `s7i7` or `ghalat`.', example: 'bdl proceed = tsawal("Are you sure you want to delete?");\nila (proceed) { /* ... */ }' },
     { darija: 'ghlat()', english: 'console.error()', description: 'Log arguments to the console as an error message.', example: 'ghlat("Failed to load resource.");' },
     { darija: 'nbehh()', english: 'console.warn()', description: 'Log arguments to the console as a warning message.', example: 'nbehh("Deprecated function used. Please update.");' },
-    { darija: 'rmmi()', english: 'throw', description: 'Throw a user-defined exception, interrupting normal execution.', example: 'ila (x < 0) {\n  rmmi("Value cannot be negative.");\n}' },
+    // 'rmmi' is now a keyword, moved to the Keywords section.
   ],
    "Math Functions (Dawall Riyadiat)": [
     { darija: 't7t()', english: 'Math.floor()', description: 'Return the largest integer less than or equal to a number.', example: 'tbe3(t7t(4.9)); // 4\ntbe3(t7t(-4.1)); // -5' },
@@ -105,7 +106,7 @@ const documentation: { [category: string]: DocEntry[] } = {
     // Note: Need `clearSta9` and `clearKrr` (equivalent to clearTimeout/clearInterval) for practical use.
   ],
   "Error Handling (Mo3alajat L2akhtaa)": [
-    { darija: 'jrb', english: 'try', description: 'Define a block of code to be tested for errors while it is being executed.', example: 'jrb {\n  tbe3("Trying...");\n  rmmi("Oh no! An error!");\n  tbe3("This won\'t show");\n} msk (err) {\n  tbe3("Caught error: " + err);\n} fakhr {\n  tbe3("This always runs, error or not.");\n}' },
+    { darija: 'jrb', english: 'try', description: 'Define a block of code to be tested for errors while it is being executed.', example: 'jrb {\n  tbe3("Trying...");\n  rmmi "Oh no! An error!"; // Use rmmi as a statement\n  tbe3("This won\'t show");\n} msk (err) {\n  tbe3("Caught error: " + err);\n} fakhr {\n  tbe3("This always runs, error or not.");\n}' },
     { darija: 'msk', english: 'catch', description: 'Define a block of code to be executed if an error occurs in the `jrb` block.', example: '// See jrb example' },
     { darija: 'fakhr', english: 'finally', description: 'Define a block of code to be executed regardless of the `jrb`/`msk` result (always runs after try or catch).', example: '// See jrb example' },
   ],
@@ -151,3 +152,4 @@ export function DarijaDocs() {
     </div>
   );
 }
+

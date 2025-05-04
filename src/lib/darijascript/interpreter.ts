@@ -1,4 +1,5 @@
 
+
 // Import the parse function and ASTNode interface
 import { ASTNode, parse as parseCode } from './parser'; // Import parse function
 
@@ -33,6 +34,7 @@ const KEYWORDS = [
   'jdid', // new
   'hadi', // this
   'no3', // typeof
+  'rmmi', // throw - Treat as keyword for parsing statements
 ];
 
 // Boolean Literals mapping
@@ -71,7 +73,7 @@ const BUILTIN_FUNCTIONS: { [key: string]: (...args: any[]) => any } = {
   'wa9t': (...args: any[]) => new Date(...args), // new Date()
   'sta9': (callback: TimerHandler, delay?: number, ...args: any[]) => setTimeout(callback, delay, ...args), // setTimeout
   'krr': (callback: TimerHandler, delay?: number, ...args: any[]) => setInterval(callback, delay, ...args), // setInterval
-  'rmmi': (error: any) => { throw error; }, // throw (implemented as a function for consistency)
+  // 'rmmi' is now handled as a statement, not a function here
   // --- Static Object/Array methods ---
   // These need special handling in the interpreter, as they are called on the Object/Array constructor
   'mfatih': (obj: object) => Object.keys(obj), // Object.keys()
@@ -428,6 +430,15 @@ class ReturnValue {
 class BreakSignal {}
 class ContinueSignal {}
 
+// Custom Error class to distinguish interpreter errors from native JS errors
+class InterpreterError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "InterpreterError";
+    }
+}
+
+
 class DarijaScriptFunction {
     name: string | null;
     params: ASTNode[];
@@ -463,10 +474,7 @@ class Interpreter {
         for (const name in BUILTIN_FUNCTIONS) {
             const nativeFunc = BUILTIN_FUNCTIONS[name];
             this.globalEnv.declare(name, (...args: any[]) => {
-                // Special case for 'rmmi' (throw): don't wrap in try-catch here, let it throw directly
-                 if (name === 'rmmi') {
-                     return nativeFunc.apply(null, args); // Just call it, it will throw
-                 }
+                // No need for try-catch wrapping here anymore as rmmi is a statement
                 try {
                      // Handling for logging functions
                      if (['tbe3', 'ghlat', 'nbehh'].includes(name)) {
@@ -501,9 +509,8 @@ class Interpreter {
                 } catch (error: any) {
                     // Append line/col info if possible
                     const currentLocation = this.getCurrentLocationInfo(); // Placeholder
-                    // Rethrow with location info, unless it's the special 'rmmi' case
-                    throw new Error(`Ghalat f dlla "${name}"${currentLocation}: ${error.message}`);
-
+                    // Re-throw with location info. Use InterpreterError for consistency.
+                    throw new InterpreterError(`Ghalat f dlla "${name}"${currentLocation}: ${error.message}`);
                 }
             }, true);
         }
@@ -537,7 +544,10 @@ class Interpreter {
              }
             this.errorOccurred = true;
             const errorNode = node; // Or potentially track a more specific node if possible
-            const errorMessage = `Runtime Ghalat [Ln ${errorNode.line ?? '?'}, Col ${errorNode.column ?? '?'}]: ${error.message || error}`;
+             // Use InterpreterError message if available, otherwise format the error
+             const errorMessage = (error instanceof InterpreterError)
+                 ? error.message
+                 : `Runtime Ghalat [Ln ${errorNode.line ?? '?'}, Col ${errorNode.column ?? '?'}]: ${error.message || error}`;
             this.output.push(`Ghalat: ${errorMessage}`);
             console.error("Interpreter Runtime Error:", errorMessage, error);
             return { error: errorMessage }; // Return an error object for the caller
@@ -556,7 +566,7 @@ class Interpreter {
                     lastVal = this.evaluate(stmt, env);
                     if (this.errorOccurred) return lastVal; // Propagate error object
                     if (lastVal instanceof ReturnValue) {
-                         throw new Error("Ma ymknch tdir 'rj3' barra mn dala.");
+                         throw new InterpreterError("Ma ymknch tdir 'rj3' barra mn dala.");
                     }
                 }
                 return lastVal;
@@ -592,6 +602,8 @@ class Interpreter {
                 return this.visitFunctionExpression(node, env);
             case 'ReturnStatement':
                 throw new ReturnValue(node.argument ? this.evaluate(node.argument, env) : undefined);
+             case 'ThrowStatement': // Handle ThrowStatement
+                 throw this.evaluate(node.argument!, env); // Evaluate the expression and throw it
             case 'IfStatement':
                  return this.visitIfStatement(node, env);
             case 'BlockStatement':
@@ -622,7 +634,7 @@ class Interpreter {
              // case 'ConditionalExpression': ...
 
             default:
-                 throw new Error(`[Ln ${currentNodeLine??'?'}, Col ${currentNodeColumn??'?'}] Ma fhmthach '${node.type}' type dyal node`);
+                 throw new InterpreterError(`[Ln ${currentNodeLine??'?'}, Col ${currentNodeColumn??'?'}] Ma fhmthach '${node.type}' type dyal node`);
         }
     }
 
@@ -648,7 +660,7 @@ class Interpreter {
          const isConstant = kind === 'tabit';
          for (const declarator of node.declarations ?? []) {
              if (!declarator.id || !declarator.id.name) {
-                 throw new Error("Variable declaration khass smia.");
+                 throw new InterpreterError("Variable declaration khass smia.");
              }
              const name = declarator.id.name;
               let value: any = undefined; // Initialize with undefined, like JS
@@ -676,9 +688,9 @@ class Interpreter {
                         case '+=': finalValue = currentVal + rightValue; break;
                         case '-=': finalValue = currentVal - rightValue; break;
                         case '*=': finalValue = currentVal * rightValue; break;
-                        case '/=': if (rightValue === 0) throw new Error("9isma 3la zero mamno3a!"); finalValue = currentVal / rightValue; break;
-                        case '%=': if (rightValue === 0) throw new Error("Modulus b zero mamno3!"); finalValue = currentVal % rightValue; break;
-                        default: throw new Error(`Assignment operator ma fhamtouch: ${node.operator}`);
+                        case '/=': if (rightValue === 0) throw new InterpreterError("9isma 3la zero mamno3a!"); finalValue = currentVal / rightValue; break;
+                        case '%=': if (rightValue === 0) throw new InterpreterError("Modulus b zero mamno3!"); finalValue = currentVal % rightValue; break;
+                        default: throw new InterpreterError(`Assignment operator ma fhamtouch: ${node.operator}`);
                     }
                } catch (lookupError) {
                    // Assignment to undeclared variable error is handled by env.assign
@@ -690,7 +702,7 @@ class Interpreter {
               const obj = this.evaluate(leftNode.object!, env);
               if (this.errorOccurred) return obj;
                if (obj == null) { // Check for null or undefined
-                    throw new Error(`Ma ymknch t assigner l property dyal ${obj === null ? 'farkha' : 'mchmcha'}.`);
+                    throw new InterpreterError(`Ma ymknch t assigner l property dyal ${obj === null ? 'farkha' : 'mchmcha'}.`);
                }
 
               let propName: string | number;
@@ -699,7 +711,7 @@ class Interpreter {
                    if (this.errorOccurred) return propName;
               } else {
                   if (!leftNode.property || leftNode.property.type !== 'Identifier') {
-                      throw new Error("Property assignment khass smia.");
+                      throw new InterpreterError("Property assignment khass smia.");
                   }
                   propName = leftNode.property.name!;
                   // Do NOT map Darija property name to JS here for assignment.
@@ -716,18 +728,18 @@ class Interpreter {
                         case '+=': finalValue = currentVal + rightValue; break;
                         case '-=': finalValue = currentVal - rightValue; break;
                         case '*=': finalValue = currentVal * rightValue; break;
-                        case '/=': if (rightValue === 0) throw new Error("9isma 3la zero mamno3a!"); finalValue = currentVal / rightValue; break;
-                        case '%=': if (rightValue === 0) throw new Error("Modulus b zero mamno3!"); finalValue = currentVal % rightValue; break;
-                        default: throw new Error(`Assignment operator ma fhamtouch: ${node.operator}`);
+                        case '/=': if (rightValue === 0) throw new InterpreterError("9isma 3la zero mamno3a!"); finalValue = currentVal / rightValue; break;
+                        case '%=': if (rightValue === 0) throw new InterpreterError("Modulus b zero mamno3!"); finalValue = currentVal % rightValue; break;
+                        default: throw new InterpreterError(`Assignment operator ma fhamtouch: ${node.operator}`);
                     }
                     obj[propName] = finalValue; // Assign the final value
                     return finalValue;
                 } catch (error: any) {
                     // Catch potential errors during property access or assignment (e.g., on non-extensible objects)
-                    throw new Error(`Maقدرتش n assigner l property "${String(propName)}" 3la ${typeof obj}: ${error.message}`);
+                    throw new InterpreterError(`Maقدرتش n assigner l property "${String(propName)}" 3la ${typeof obj}: ${error.message}`);
                 }
           } else {
-               throw new Error("Assignment target ماشي valid.");
+               throw new InterpreterError("Assignment target ماشي valid.");
           }
       }
 
@@ -739,13 +751,13 @@ class Interpreter {
 
         switch (node.operator) {
             case '+': return left + right; case '-': return left - right; case '*': return left * right;
-            case '/': if (right === 0) throw new Error("9isma 3la zero mamno3a!"); return left / right;
-            case '%': if (right === 0) throw new Error("Modulus b zero mamno3!"); return left % right;
+            case '/': if (right === 0) throw new InterpreterError("9isma 3la zero mamno3a!"); return left / right;
+            case '%': if (right === 0) throw new InterpreterError("Modulus b zero mamno3!"); return left % right;
             case '==': return left == right; case '!=': return left != right;
             case '===': return left === right; case '!==': return left !== right;
             case '<': return left < right; case '>': return left > right;
             case '<=': return left <= right; case '>=': return left >= right;
-            default: throw new Error(`Operator dial binary ma 3rftouch: ${node.operator}`);
+            default: throw new InterpreterError(`Operator dial binary ma 3rftouch: ${node.operator}`);
         }
     }
 
@@ -756,7 +768,7 @@ class Interpreter {
          if (node.operator === '||') return this.isTruthy(left) ? left : this.evaluate(node.right!, env);
          if (node.operator === '&&') return !this.isTruthy(left) ? left : this.evaluate(node.right!, env);
          // If error occurs in right operand evaluation, it will be caught by interpret()
-         throw new Error(`Logical operator ma 3rftouch: ${node.operator}`);
+         throw new InterpreterError(`Logical operator ma 3rftouch: ${node.operator}`);
     }
 
 
@@ -766,7 +778,7 @@ class Interpreter {
         switch (node.operator) {
             case '-': return -operand; case '!': return !this.isTruthy(operand);
             case 'no3': return typeof operand; case '+': return +operand; // Unary plus for type coercion
-            default: throw new Error(`Operator dial unary ma 3rftouch: ${node.operator}`);
+            default: throw new InterpreterError(`Operator dial unary ma 3rftouch: ${node.operator}`);
         }
     }
 
@@ -775,7 +787,7 @@ class Interpreter {
         if (argNode.type === 'Identifier') {
             const varName = argNode.name!;
             let value = env.lookup(varName); // Ensure variable exists
-            if (typeof value !== 'number') throw new Error(`Operator "${node.operator}" khass ykoun m3a number.`);
+            if (typeof value !== 'number') throw new InterpreterError(`Operator "${node.operator}" khass ykoun m3a number.`);
             const originalValue = value;
             value = node.operator === '++' ? value + 1 : value - 1;
             env.assign(varName, value); // Assign back the updated value
@@ -783,29 +795,29 @@ class Interpreter {
         } else if (argNode.type === 'MemberExpression') {
            const obj = this.evaluate(argNode.object!, env);
            if (this.errorOccurred) return obj;
-            if (obj == null) throw new Error(`Ma ymknch t update property dyal ${obj === null ? 'farkha' : 'mchmcha'}.`);
+            if (obj == null) throw new InterpreterError(`Ma ymknch t update property dyal ${obj === null ? 'farkha' : 'mchmcha'}.`);
             let propName: string | number;
             if (argNode.computed) {
                  propName = this.evaluate(argNode.property!, env);
                  if (this.errorOccurred) return propName;
             } else {
-                 if (!argNode.property || argNode.property.type !== 'Identifier') throw new Error("Property update khass smia.");
+                 if (!argNode.property || argNode.property.type !== 'Identifier') throw new InterpreterError("Property update khass smia.");
                  propName = argNode.property.name!;
                  // Do not map property name here, update the DarijaScript named property
                  // propName = BUILTIN_PROPERTIES[propName] || propName;
             }
              let value = obj[propName]; // Get current value
-             if (typeof value !== 'number') throw new Error(`Operator "${node.operator}" khass ykoun m3a number property.`);
+             if (typeof value !== 'number') throw new InterpreterError(`Operator "${node.operator}" khass ykoun m3a number property.`);
              const originalValue = value;
              value = node.operator === '++' ? value + 1 : value - 1; // Calculate new value
               try {
                   obj[propName] = value; // Assign the updated value back
                   return node.prefix ? value : originalValue;
               } catch (error: any) {
-                   throw new Error(`Maقدرتش n update property "${String(propName)}" 3la ${typeof obj}: ${error.message}`);
+                   throw new InterpreterError(`Maقدرتش n update property "${String(propName)}" 3la ${typeof obj}: ${error.message}`);
               }
         } else {
-            throw new Error("Update expression khass ykoun 3la variable wla property.");
+            throw new InterpreterError("Update expression khass ykoun 3la variable wla property.");
         }
     }
 
@@ -817,7 +829,7 @@ class Interpreter {
         // Evaluate arguments first
         let args = (node.arguments ?? []).map(arg => { // Use let for args
             const evaluatedArg = this.evaluate(arg, env);
-            if (this.errorOccurred) throw new Error("Ghalat f argument dyal function call."); // Throw to signal error
+            if (this.errorOccurred) throw new InterpreterError("Ghalat f argument dyal function call."); // Throw to signal error
             return evaluatedArg;
         });
         if (this.errorOccurred) return; // Should have been caught by the throw above
@@ -828,7 +840,7 @@ class Interpreter {
             // Method call: obj.method(...) or obj[method](...)
             const obj = this.evaluate(calleeNode.object!, env);
             if (this.errorOccurred) return obj;
-            if (obj == null) throw new Error(`Ma ymknch tnadi method mn ${obj === null ? 'farkha' : 'mchmcha'}.`);
+            if (obj == null) throw new InterpreterError(`Ma ymknch tnadi method mn ${obj === null ? 'farkha' : 'mchmcha'}.`);
 
             let propName: string | number | symbol;
             let darijaPropName: string | null = null; // Store original Darija name if needed
@@ -838,7 +850,7 @@ class Interpreter {
                 if (this.errorOccurred) return propName;
             } else {
                 if (!calleeNode.property || calleeNode.property.type !== 'Identifier') {
-                    throw new Error("Method call khass smia.");
+                    throw new InterpreterError("Method call khass smia.");
                 }
                 darijaPropName = calleeNode.property.name!;
                 // Check if it's a Darija built-in method name and map to JS name for lookup
@@ -918,7 +930,7 @@ class Interpreter {
                       calleeName = `${originalName} (-> ${mappedName})`;
                  }
              }
-             throw new Error(`Dak lli bghiti tnadi "${calleeName}" (type: ${typeof funcToCall}) ماشي dala.`);
+             throw new InterpreterError(`Dak lli bghiti tnadi "${calleeName}" (type: ${typeof funcToCall}) ماشي dala.`);
          }
 
           // Handle DarijaScript function calls
@@ -926,11 +938,11 @@ class Interpreter {
              const callEnv = funcToCall.closure.extend();
              if (!funcToCall.params) funcToCall.params = []; // Ensure params is an array
              if (funcToCall.params.length !== args.length) {
-                  throw new Error(`Dala "${funcToCall.name || 'anonymous'}" katsnna ${funcToCall.params.length} arguments, 3titih ${args.length}.`);
+                  throw new InterpreterError(`Dala "${funcToCall.name || 'anonymous'}" katsnna ${funcToCall.params.length} arguments, 3titih ${args.length}.`);
              }
              // Declare arguments in the function's environment
              funcToCall.params.forEach((param, index) => {
-                  if (!param.name) throw new Error("Parameter khass smia.");
+                  if (!param.name) throw new InterpreterError("Parameter khass smia.");
                   callEnv.declare(param.name, args[index], false);
              });
               // Set 'hadi' (this) for the user function call.
@@ -954,13 +966,13 @@ class Interpreter {
                     let funcName = 'native function';
                      if(calleeNode.type === 'Identifier') funcName = calleeNode.name!;
                      else if (calleeNode.type === 'MemberExpression' && calleeNode.property?.type === 'Identifier') funcName = calleeNode.property.name!;
-                    throw new Error(`Ghalat mli kan nadi native function/method "${funcName}": ${error.message}`);
+                    throw new InterpreterError(`Ghalat mli kan nadi native function/method "${funcName}": ${error.message}`);
                }
           }
     }
 
       visitFunctionDeclaration(node: ASTNode, env: Environment): any {
-        if (!node.id || !node.id.name) throw new Error("Function declaration khass smia.");
+        if (!node.id || !node.id.name) throw new InterpreterError("Function declaration khass smia.");
         const funcName = node.id.name;
         const params = node.params ?? [];
         const body = node.body!;
@@ -1143,7 +1155,7 @@ class Interpreter {
         const obj = this.evaluate(node.object!, env);
         if (this.errorOccurred) return obj;
          if (obj == null) { // Check for both null and undefined
-            throw new Error(`Ma ymknch tqra property mn ${obj === null ? 'farkha' : 'mchmcha'}.`);
+            throw new InterpreterError(`Ma ymknch tqra property mn ${obj === null ? 'farkha' : 'mchmcha'}.`);
         }
         let propName: string | number | symbol;
         if (node.computed) { // Bracket notation: obj[expr]
@@ -1151,14 +1163,14 @@ class Interpreter {
              if (this.errorOccurred) return propName;
         } else { // Dot notation: obj.prop
             if (!node.property || node.property.type !== 'Identifier') {
-                 throw new Error("Member access b '.' khass ykoun smia.");
+                 throw new InterpreterError("Member access b '.' khass ykoun smia.");
             }
             const darijaPropName = node.property.name!;
              // Check if it's a mapped property like 'twil' -> 'length'
              const mappedProp = BUILTIN_PROPERTIES[darijaPropName];
              if (mappedProp) {
                  try { return obj[mappedProp]; } // Access using the JS name
-                 catch (error: any) { throw new Error(`Ghalat mli kan qra property "${darijaPropName}" (JS: ${mappedProp}) mn ${typeof obj}: ${error.message}`); }
+                 catch (error: any) { throw new InterpreterError(`Ghalat mli kan qra property "${darijaPropName}" (JS: ${mappedProp}) mn ${typeof obj}: ${error.message}`); }
              }
              // Check if it's a mapped method name
              const mappedMethod = this.mapDarijaMethodToJs(darijaPropName);
@@ -1173,7 +1185,6 @@ class Interpreter {
          try {
              // Access the property using the determined name (could be number, string, symbol, or Darija name)
             const value = obj[propName];
-
              // If the retrieved value is a native JS function (but not one we manually bound above),
              // bind it to the object instance here.
              if (typeof value === 'function' && !(value instanceof DarijaScriptFunction)) {
@@ -1184,7 +1195,7 @@ class Interpreter {
              }
              return value; // Return the raw value (primitive, object, DarijaScriptFunction, undefined, etc.)
          } catch (error: any) {
-             throw new Error(`Ghalat mli kan qra property "${String(propName)}" mn ${typeof obj}: ${error.message}`);
+             throw new InterpreterError(`Ghalat mli kan qra property "${String(propName)}" mn ${typeof obj}: ${error.message}`);
          }
      }
 
@@ -1193,7 +1204,7 @@ class Interpreter {
         if (this.errorOccurred) return callee;
         const args = (node.arguments ?? []).map(arg => {
              const evalArg = this.evaluate(arg, env);
-             if (this.errorOccurred) throw new Error("Ghalat f argument dyal constructor.");
+             if (this.errorOccurred) throw new InterpreterError("Ghalat f argument dyal constructor.");
              return evalArg;
         });
          if (this.errorOccurred) return;
@@ -1201,7 +1212,7 @@ class Interpreter {
         // Check if the callee is a constructor (native JS function)
         if (typeof callee !== 'function' || callee instanceof DarijaScriptFunction) {
             let calleeName = node.callee?.type === 'Identifier' ? node.callee.name! : 'expression';
-            throw new Error(`Dak lli bghiti dir lih 'jdid' ("${calleeName}") ماشي constructor s7i7.`);
+            throw new InterpreterError(`Dak lli bghiti dir lih 'jdid' ("${calleeName}") ماشي constructor s7i7.`);
         }
          try {
              // Handle specific built-in constructors like Date ('wa9t')
@@ -1212,7 +1223,7 @@ class Interpreter {
              return new (callee as any)(...args);
          } catch (error: any) {
               let constructorName = node.callee?.type === 'Identifier' ? node.callee.name : 'constructor';
-             throw new Error(`Ghalat mli kan dir 'jdid ${constructorName}': ${error.message}`);
+             throw new InterpreterError(`Ghalat mli kan dir 'jdid ${constructorName}': ${error.message}`);
          }
     }
 
@@ -1256,7 +1267,7 @@ class Interpreter {
                  if (isCurrentMatch || fallThrough) {
                      for (const stmt of caseNode.consequent ?? []) {
                          this.evaluate(stmt, switchEnv); // Evaluate statement
-                         if (this.errorOccurred) throw new Error("Ghalat f west switch case statement."); // Throw to break out
+                         if (this.errorOccurred) throw new InterpreterError("Ghalat f west switch case statement."); // Throw to break out
                      }
                      // Fallthrough continues unless a 'wa9f' (break) is encountered (handled by throwing BreakSignal)
                  }
@@ -1266,7 +1277,7 @@ class Interpreter {
              if (defaultCaseNode && (!matched || fallThrough)) {
                   for (const stmt of defaultCaseNode.consequent ?? []) {
                      this.evaluate(stmt, switchEnv);
-                     if (this.errorOccurred) throw new Error("Ghalat f west default switch case statement.");
+                     if (this.errorOccurred) throw new InterpreterError("Ghalat f west default switch case statement.");
                  }
              }
 
@@ -1291,7 +1302,7 @@ class Interpreter {
                 return undefined;
             }
             const value = this.evaluate(element, env);
-            if (this.errorOccurred) throw new Error("Ghalat f evaluation dyal element f array.");
+            if (this.errorOccurred) throw new InterpreterError("Ghalat f evaluation dyal element f array.");
             return value;
         });
          // If an error occurred during element evaluation, the map would have thrown.
@@ -1306,7 +1317,7 @@ class Interpreter {
          const obj: { [key: string]: any } = {};
          for (const propNode of node.properties ?? []) {
              if (propNode.type !== 'Property' || !propNode.key || !propNode.value) {
-                 throw new Error("Object literal property format ghalat.");
+                 throw new InterpreterError("Object literal property format ghalat.");
              }
              let key: string | number;
              if (propNode.key.type === 'Identifier') {
@@ -1314,11 +1325,11 @@ class Interpreter {
              } else if (propNode.key.type === 'StringLiteral' || propNode.key.type === 'NumericLiteral') {
                  key = propNode.key.value;
              } else {
-                  throw new Error("Smia dyal object property khass tkoun Identifier, String, wla Number.");
+                  throw new InterpreterError("Smia dyal object property khass tkoun Identifier, String, wla Number.");
              }
 
              const value = this.evaluate(propNode.value, env);
-             if (this.errorOccurred) throw new Error("Ghalat f evaluation dyal object property value.");
+             if (this.errorOccurred) throw new InterpreterError("Ghalat f evaluation dyal object property value.");
 
              obj[key] = value;
          }
@@ -1436,7 +1447,8 @@ export function interpret(code: string): { output: string[], error?: string } {
   } catch (e: any) {
     // Catch unexpected system errors during tokenization, parsing, or interpretation
     console.error("Interpreter System Error:", e);
-    const errorMessage = (e && typeof e.message === 'string') ? e.message : 'Erreur système inconnue.';
+     // Prefer InterpreterError message if available
+     const errorMessage = (e instanceof InterpreterError || e instanceof Error) ? e.message : 'Erreur système inconnue.';
      const output = interpreter ? interpreter.output : [];
      // Add system error message to output if it wasn't already added by interpreter
      if (!output.some(line => line.includes(errorMessage))) {
