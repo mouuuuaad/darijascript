@@ -60,16 +60,25 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
   }, []);
 
   const startFadeOut = () => {
-    // Fade out animation before closing
-    gsap.to(overlayRef.current, {
-      opacity: 0,
-      duration: 0.5,
-      ease: 'power2.inOut',
-      onComplete: () => {
-        setIsSubmitting(false); // Reset submitting state after animation
-        onClose(); // Call onClose prop after animation finishes
-      },
-    });
+    console.log("Starting fade out animation..."); // Log: Start animation
+    // Ensure overlayRef.current exists before animating
+    if (overlayRef.current) {
+        gsap.to(overlayRef.current, {
+          opacity: 0,
+          duration: 0.5,
+          ease: 'power2.inOut',
+          onComplete: () => {
+            console.log("Fade out animation complete. Calling onClose..."); // Log: Animation complete
+            setIsSubmitting(false); // Reset submitting state after animation
+            onClose(); // Call onClose prop after animation finishes
+          },
+        });
+    } else {
+         console.error("Overlay ref not found, cannot start fade out animation.");
+         // Fallback to closing immediately if animation fails
+         setIsSubmitting(false);
+         onClose();
+    }
   };
 
 
@@ -112,6 +121,8 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
 
     // Show toast *before* starting the fade out animation
     toast(toastOptions);
+    console.log("Toast shown. Calling startFadeOut..."); // Log: Toast shown
+
 
     // Start the fade out animation regardless of toast/Firestore outcome
     startFadeOut();
