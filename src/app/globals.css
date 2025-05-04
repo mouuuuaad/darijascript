@@ -12,6 +12,12 @@
     /* Button Grad Start: #4CB7FF -> hsl(203, 100%, 65%) */
     /* Button Grad End: #3CACFF -> hsl(207, 100%, 62%) */
     /* Dual Button: #67F2D3 (Lighter Turquoise) -> hsl(167, 84%, 67%) */
+    /* Background: #020013 */
+    /* Primary: #3BACFF */
+    /* Accent/Dual: #50E3C2 */
+    /* Button Grad Start: #4CB7FF */
+    /* Button Grad End: #3CACFF */
+    /* Dual Button: #67F2D3 */
 
     --background: 244 92% 4%; /* #020013 */
     --foreground: 210 40% 98%; /* Very light gray/blue for high contrast */
@@ -35,239 +41,28 @@
 
     /* Charts - derived from palette */
     --chart-1: 207 90% 55%; /* Primary variant */
-    --chart-2: 167 80% 50%; /* Secondary/Accent variant */
-    --chart-3: 280 80% 65%; /* Contrasting Purple */
-    --chart-4: 35 90% 60%; /* Contrasting Orange/Gold */
-    --chart-5: 210 30% 80%; /* Lighter Foreground variant */
-    --radius: 0.75rem; /* Slightly larger radius for modern feel */
-
-    /* Sidebar specific colors */
-    --sidebar-background: 244 80% 8%; /* Darker sidebar, slightly more saturated */
-    --sidebar-foreground: 210 30% 92%;
-    --sidebar-primary: 207 100% 70%; /* Brighter primary for sidebar */
-    --sidebar-primary-foreground: 244 92% 6%;
-    --sidebar-accent: 167 80% 55%; /* Darker accent for sidebar */
-    --sidebar-accent-foreground: 244 92% 4%;
-    --sidebar-border: 244 50% 15%;
-    --sidebar-ring: 207 100% 65%;
-
-    /* Custom variables for Enhanced Docs (Dark Theme Focus) */
-    --docs-bg: var(--background); /* Match main background */
-    --docs-category-bg: linear-gradient(145deg, hsl(var(--primary)/0.08), hsl(var(--secondary)/0.08)); /* Subtle gradient */
-    --docs-category-border: hsl(var(--primary)/0.6); /* Use primary color for border */
-    --docs-category-text: hsl(var(--primary));
-    --docs-entry-bg: hsl(var(--card)); /* Use card background */
-    --docs-entry-border: hsl(var(--accent)/0.8); /* Accent color for entry border */
-    --docs-entry-darija-text: hsl(var(--accent)); /* Accent color for Darija */
-    --docs-entry-english-text: hsl(var(--secondary)); /* Secondary for English */
-    --docs-entry-description-text: hsl(var(--foreground)/0.9);
-    --docs-code-bg: 244 50% 12%; /* Slightly lighter dark code block */
-    --docs-code-border: hsl(var(--border));
-    --docs-intro-bg: linear-gradient(135deg, hsl(var(--primary)/0.9), hsl(var(--secondary)/0.7));
-    --docs-intro-text: hsl(var(--primary-foreground));
-
-    /* Output Area Custom Variables (Dark Theme Focus) */
-     --output-bg: 244 60% 12%; /* Slightly distinct dark background for output */
-     --output-text: hsl(var(--foreground)/0.95);
-     --output-border: hsl(var(--border)/0.8);
-     --output-error-bg: hsl(var(--destructive)/0.1);
-     --output-error-text: hsl(var(--destructive));
-     --output-error-border: hsl(var(--destructive)/0.4);
-     --output-success-bg: hsl(167 80% 20%); /* Darker green/turquoise */
-     --output-success-text: hsl(167 80% 80%);
-
-     /* Button Gradient Variables */
-     --button-grad-start: 203 100% 65%; /* #4CB7FF */
-     --button-grad-end: 207 100% 62%; /* #3CACFF */
-     --button-dual: 167 84% 67%; /* #67F2D3 */
-  }
-
-   /* Apply the dark theme variables directly as there's only one theme now */
-   /* .dark selector is not needed if the base :root is already dark */
-
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    /* Use the font variables defined in layout.tsx */
-    font-family: var(--font-geist-sans), system-ui, sans-serif;
-    @apply bg-background text-foreground;
-    /* Smooth scrolling */
-     scroll-behavior: smooth;
-  }
-  /* Improve focus visibility */
-   *:focus-visible {
-      @apply ring-2 ring-ring ring-offset-2 ring-offset-background;
-   }
-}
-
-
-@layer components {
-    /* === Enhanced Documentation Styling (Creative Dark Theme) === */
-    .docs-container {
-        @apply bg-[hsl(var(--docs-bg))] p-4 md:p-6 lg:p-8 rounded-lg shadow-xl; /* Stronger shadow */
-    }
-    /* Introduction section */
-    .docs-intro {
-        @apply p-6 mb-8 rounded-lg shadow-lg text-center relative overflow-hidden; /* Added relative/overflow */
-        background: var(--docs-intro-bg); /* Gradient background */
-        color: hsl(var(--docs-intro-text));
-    }
-    .docs-intro::before { /* Decorative element */
-        content: '';
-        @apply absolute -top-1/2 -left-1/4 w-full h-[200%] bg-gradient-radial from-secondary/10 to-transparent opacity-50 -rotate-12;
-        animation: rotate-glow 15s linear infinite;
-    }
-    @keyframes rotate-glow {
-        from { transform: rotate(-12deg) scale(1); }
-        to { transform: rotate(348deg) scale(1.05); }
-    }
-    .docs-intro h2 {
-       @apply text-4xl font-extrabold mb-3 tracking-tight; /* Larger */
-    }
-    .docs-intro p {
-       @apply text-lg opacity-90 font-light;
-    }
-
-   /* Accordion styles */
-   .docs-container .accordion-root {
-        @apply space-y-6; /* More space between categories */
-   }
-   .docs-container .accordion-item {
-       @apply border-none rounded-xl overflow-hidden shadow-lg transition-all duration-300 ease-out; /* Added transition */
-       background: var(--docs-category-bg); /* Use gradient bg */
-       border-left: 5px solid hsl(var(--docs-category-border)); /* Thicker colored left border */
-   }
-   .docs-container .accordion-item:hover {
-        transform: translateY(-2px); /* Subtle hover lift */
-        box-shadow: 0 15px 25px -5px hsl(var(--primary)/0.1), 0 8px 10px -6px hsl(var(--primary)/0.1);
-   }
-   .docs-container .accordion-trigger {
-       @apply flex items-center justify-between w-full px-6 py-5 text-xl font-semibold text-left transition-all duration-300 ease-in-out; /* Larger text, more padding */
-       color: hsl(var(--docs-category-text)); /* Use category text color */
-       /* hover:bg-primary/5 */ /* Subtle hover background */
-   }
-   .docs-container .accordion-trigger:hover {
-        @apply no-underline opacity-95; /* Remove underline, slight opacity change */
-        background: hsla(0, 0%, 100%, 0.02); /* Very subtle hover BG */
-   }
-   .docs-container .accordion-trigger svg { /* Chevron icon */
-        @apply h-6 w-6 transition-transform duration-300;
-        color: hsl(var(--docs-category-text));
-   }
-    .docs-container .accordion-trigger[data-state=open] svg {
-       @apply rotate-180;
-    }
-   .docs-container .accordion-content {
-        @apply px-6 pb-6 pt-2 bg-[hsl(var(--card))] backdrop-blur-sm; /* Use card bg */
-   }
-
-    /* Documentation entry styles */
-    .docs-container .doc-entry {
-        @apply mt-5 p-5 border-l-4 rounded-r-lg shadow-md transition-all duration-300 ease-out hover:shadow-lg relative overflow-hidden; /* More padding, shadow effect */
-        border-color: hsl(var(--docs-entry-border)); /* Use accent border color */
-        background-color: hsl(var(--docs-entry-bg)); /* Use entry background color */
-    }
-     .docs-container .doc-entry::after { /* Subtle glow effect on hover */
-        content: '';
-        @apply absolute -top-10 -right-10 w-32 h-32 bg-gradient-radial from-accent/15 to-transparent rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100;
++    --chart-2: 167 80% 50%; /* Secondary/Accent variant */
+     --chart-2: 167 80% 50%; /* Secondary/Accent variant */
+     --chart-3: 280 80% 65%; /* Contrasting Purple */
+     --chart-4: 35 90% 60%; /* Contrasting Orange/Gold */
+     --chart-5: 210 30% 80%; /* Lighter Foreground variant */
+@@ -128,8 +129,8 @@
+       --output-success-text: hsl(167 80% 80%);
      }
-    .docs-container .doc-entry-header {
-        @apply flex items-center gap-3 mb-2; /* Increased gap */
-    }
-    .docs-container .doc-entry-darija {
-       @apply font-mono font-bold text-lg tracking-wide; /* Larger, bolder Darija term */
-       color: hsl(var(--docs-entry-darija-text));
-    }
-     .docs-container .doc-entry-english {
-       @apply text-xs font-semibold px-2.5 py-1 rounded-full bg-muted text-muted-foreground uppercase tracking-wider; /* Pill style badge */
-    }
-     .docs-container .doc-entry-description {
-       @apply text-base text-foreground/85 dark:text-foreground/80 mt-1 leading-relaxed; /* Improved readability */
-    }
-    .docs-container .doc-entry-usage-notes {
-       @apply text-sm text-amber-400 dark:text-amber-300 italic mt-3 p-3 bg-amber-900/20 dark:bg-amber-950/30 border-l-2 border-amber-500 rounded-r-md;
-    }
-     .docs-container .doc-entry-example {
-       @apply mt-4; /* More space before example */
-    }
-
-     /* Code block specific styling */
-    .docs-container .code-block {
-        @apply bg-[hsl(var(--docs-code-bg))] border rounded-lg p-4 text-sm shadow-inner overflow-x-auto relative; /* More padding, better rounding */
-        border-color: hsl(var(--docs-code-border));
-    }
-     /* Copy button styling */
-     .docs-container .code-block button {
-        @apply absolute top-2 right-2 p-1.5 bg-muted/50 hover:bg-muted rounded-md text-muted-foreground hover:text-foreground transition-all opacity-50 hover:opacity-100 focus:opacity-100;
+ 
+-
+     /* Apply the dark theme variables directly as there's only one theme now */
++
+     body {
+       background-color: hsl(var(--background));
+       color: hsl(var(--foreground));
+@@ -251,7 +252,5 @@
+       --output-success-text: hsl(167 80% 80%);
      }
-     .docs-container .code-block button svg {
-         @apply w-4 h-4;
-     }
-
-    /* Creator Credit Styling */
-     .docs-container .creator-credit {
-        @apply mt-12 text-center text-base font-medium;
-        color: hsl(var(--muted-foreground)/0.9);
-     }
-      .docs-container .creator-name {
-         @apply font-bold tracking-wide text-lg;
-         /* Use a gradient text effect for the name */
-         background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
-         -webkit-background-clip: text;
-         -webkit-text-fill-color: transparent;
-         background-clip: text;
-         text-fill-color: transparent;
-         display: inline-block; /* Needed for gradient */
-     }
-
-      /* === Enhanced Output Area Styling === */
-     .output-area-card {
-         @apply border-[hsl(var(--output-border))] bg-transparent; /* Custom border color, transparent bg */
-     }
-      .output-area-card .card-header {
-         @apply bg-muted/5 dark:bg-muted/5 border-b-[hsl(var(--output-border))]; /* Subtle header */
-     }
-     .output-area-card .card-content {
-         @apply bg-[hsl(var(--output-bg))]; /* Custom background color */
-     }
-      .output-area-scroll {
-          @apply p-4 font-mono text-sm; /* Use mono font */
-          color: hsl(var(--output-text)); /* Custom text color */
-      }
-     .output-area-alert.alert-destructive {
-         background-color: hsl(var(--output-error-bg));
-         color: hsl(var(--output-error-text));
-         border-color: hsl(var(--output-error-border));
-          @apply shadow-md border-l-4;
-     }
-      .output-area-alert.alert-destructive .alert-title {
-         color: hsl(var(--output-error-text)); /* Ensure title matches */
-          @apply font-bold;
-     }
-       .output-area-alert.alert-destructive .alert-description {
-         color: hsl(var(--output-error-text)/0.9); /* Slightly less intense description */
-     }
-      .output-area-placeholder {
-         @apply text-center italic py-6;
-          color: hsl(var(--muted-foreground)/80);
-      }
-      .output-area-pre {
-         @apply whitespace-pre-wrap break-words p-4 bg-[hsl(var(--background)/0.8)] backdrop-blur-sm rounded-md border;
-         border-color: hsl(var(--border)/0.3);
-          color: hsl(var(--output-text));
-          line-height: 1.6; /* Improve readability */
-          box-shadow: inset 0 1px 3px hsla(0, 0%, 0%, 0.2);
-      }
-      /* Style for successful execution message if needed */
-     .output-area-success {
-         @apply p-3 mb-3 rounded-md border text-sm border-l-4;
-         background-color: hsl(var(--output-success-bg));
-         color: hsl(var(--output-success-text));
-         border-color: hsl(var(--output-success-text)/0.6);
-          box-shadow: 0 2px 4px hsla(167, 80%, 80%, 0.1);
-     }
-}
+ }
+-
+-
+-
+-
++/* Existing code from globals.css */
++
