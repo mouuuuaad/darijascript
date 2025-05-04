@@ -18,6 +18,7 @@ export function setupDarijaScriptLanguage(monaco: typeof monacoEditor) {
     // Language Constants/Literals
     constants: [
        's7i7', 'ghalat', 'farkha', 'mchmcha', 'hadi', // true, false, null, undefined, this
+       'true', 'false', 'null', 'undefined' // Add English equivalents
     ],
     // Special Keywords (Types, Operators as words)
     typeKeywords: [
@@ -161,7 +162,7 @@ export function setupDarijaScriptLanguage(monaco: typeof monacoEditor) {
                   ].map(k => createCompletionItem(k, monaco.languages.CompletionItemKind.Keyword, k, "DarijaScript Keyword")),
 
                 // Language Constants/Literals
-                ...['s7i7', 'ghalat', 'farkha', 'mchmcha', 'hadi'].map(c => createCompletionItem(c, monaco.languages.CompletionItemKind.Constant, c, "DarijaScript Literal/Constant")),
+                ...['s7i7', 'ghalat', 'farkha', 'mchmcha', 'hadi', 'true', 'false', 'null', 'undefined'].map(c => createCompletionItem(c, monaco.languages.CompletionItemKind.Constant, c, "DarijaScript Literal/Constant")),
 
                  // Special Keywords
                 ...['no3', 'jdid'].map(t => createCompletionItem(t, monaco.languages.CompletionItemKind.Keyword, t, "DarijaScript Operator/Type Keyword")),
@@ -226,3 +227,4 @@ export function setupDarijaScriptLanguage(monaco: typeof monacoEditor) {
 
     console.log(`DarijaScript language (${languageId}) configured for Monaco.`);
 }
+

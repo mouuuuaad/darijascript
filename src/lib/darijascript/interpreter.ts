@@ -10,22 +10,33 @@ interface Token {
 }
 
 const KEYWORDS: Record<string, string> = {
+  // Declarations & Scope
   'bdl': 'VARIABLE_DECLARATION', // let / var
   'tabit': 'CONSTANT_DECLARATION', // const
   'khdma': 'FUNCTION_DECLARATION', // function (alternative: dala)
   'dala': 'FUNCTION_DECLARATION', // function
   'rj3': 'RETURN', // return
+
+  // Literals & Values
   's7i7': 'BOOLEAN_TRUE', // true
+  'true': 'BOOLEAN_TRUE', // English true
   'ghalat': 'BOOLEAN_FALSE', // false (alternative: kdb)
   'kdb': 'BOOLEAN_FALSE', // false
+  'false': 'BOOLEAN_FALSE', // English false
   'farkha': 'NULL', // null
+  'null': 'NULL', // English null
   'mchmcha': 'UNDEFINED', // undefined
+  'undefined': 'UNDEFINED', // English undefined
   'jdid': 'NEW', // new
   'hadi': 'THIS', // this
+
+  // Operators & Types
   'no3': 'TYPEOF', // typeof
+
+  // Control Flow
   'ila': 'IF', // if
   'ella': 'ELSE', // else
-  'wa9ila': 'ELSE_IF', // else if (custom)
+  'wa9ila': 'ELSE_IF', // else if
   'bdl3la': 'SWITCH', // switch
   '7ala': 'CASE', // case
   '3adi': 'DEFAULT', // default
@@ -34,53 +45,73 @@ const KEYWORDS: Record<string, string> = {
   'dir': 'DO', // do...while
   'wa9f': 'BREAK', // break
   'kamml': 'CONTINUE', // continue
+
+  // Error Handling
   'jrb': 'TRY', // try
   'msk': 'CATCH', // catch
   'fakhr': 'FINALLY', // finally
-  'mnin': 'FOR_IN', // Potentially for 'for...in' or part of 'for' loop syntax 'mnin i=0 hta 5'
-  'hta': 'FOR_TO', // Potentially 'to' in a for loop 'mnin i=0 hta 5'
+
+   // Loop Helpers (Potentially part of FOR syntax)
+   'mnin': 'FOR_IN', // Potentially for 'for...in' or part of 'for' loop syntax 'mnin i=0 hta 5'
+   'hta': 'FOR_TO', // Potentially 'to' in a for loop 'mnin i=0 hta 5'
 };
 
+
 const BUILTINS: Record<string, string> = {
-  'tbe3': 'CONSOLE_LOG', // console.log()
-  'nadi': 'ALERT', // alert()
-  'sowel': 'PROMPT', // prompt()
-  'tsawal': 'CONFIRM', // confirm()
-  'ghlat': 'CONSOLE_ERROR', // console.error()
-  'nbehh': 'CONSOLE_WARN', // console.warn()
-  't7t': 'MATH_FLOOR', // Math.floor()
-  'fo9': 'MATH_CEIL', // Math.ceil()
-  'dour': 'MATH_ROUND', // Math.round()
-  'tsarraf': 'MATH_RANDOM', // Math.random()
-  'kbar': 'MATH_MAX', // Math.max()
-  'sghar': 'MATH_MIN', // Math.min()
-  'mnfi': 'MATH_ABS', // Math.abs()
-  'rf3': 'MATH_POW', // Math.pow()
-  'jdr': 'MATH_SQRT', // Math.sqrt()
-  'ns': 'STRING_CONSTRUCTOR', // String()
-  'kbr7rf': 'STRING_TOUPPERCASE', // .toUpperCase()
-  'sghr7rf': 'STRING_TOLOWERCASE', // .toLowerCase()
-  'kayn': 'ARRAY_INCLUDES', // .includes() (could be string or array)
-  'twil': 'PROPERTY_LENGTH', // .length
-  'zid': 'ARRAY_PUSH', // push()
-  '7yed': 'ARRAY_POP', // pop()
-  '7yedmnlwla': 'ARRAY_SHIFT', // shift()
-  'zidfllwla': 'ARRAY_UNSHIFT', // unshift()
-  'dwr': 'ARRAY_MAP', // map()
-  'n9i': 'ARRAY_FILTER', // filter()
-  'lfech': 'ARRAY_FOREACH', // forEach()
-  'l9a': 'ARRAY_FIND', // find()
-  'lmmaj': 'ARRAY_REDUCE', // reduce()
-  'mfatih': 'OBJECT_KEYS', // Object.keys()
-  'qiyam': 'OBJECT_VALUES', // Object.values()
-  'daba': 'DATE_NOW', // Date.now()
-  'wa9t': 'DATE_CONSTRUCTOR', // new Date()
-  '3am': 'DATE_GETFULLYEAR', // getFullYear()
-  'chhr': 'DATE_GETMONTH', // getMonth()
-  'nhar': 'DATE_GETDATE', // getDate()
-  'sta9': 'SET_TIMEOUT', // setTimeout()
-  'krr': 'SET_INTERVAL', // setInterval()
-  'rmmi': 'THROW', // throw() - treated like a builtin function call
+    // Console & I/O
+    'tbe3': 'CONSOLE_LOG', // console.log()
+    'nadi': 'ALERT', // alert()
+    'sowel': 'PROMPT', // prompt()
+    'tsawal': 'CONFIRM', // confirm()
+    'ghlat': 'CONSOLE_ERROR', // console.error()
+    'nbehh': 'CONSOLE_WARN', // console.warn()
+
+    // Math Functions
+    't7t': 'MATH_FLOOR', // Math.floor()
+    'fo9': 'MATH_CEIL', // Math.ceil()
+    'dour': 'MATH_ROUND', // Math.round()
+    'tsarraf': 'MATH_RANDOM', // Math.random()
+    'kbar': 'MATH_MAX', // Math.max()
+    'sghar': 'MATH_MIN', // Math.min()
+    'mnfi': 'MATH_ABS', // Math.abs()
+    'rf3': 'MATH_POW', // Math.pow()
+    'jdr': 'MATH_SQRT', // Math.sqrt()
+
+    // String Functions & Properties
+    'ns': 'STRING_CONSTRUCTOR', // String()
+    'kbr7rf': 'STRING_TOUPPERCASE', // .toUpperCase()
+    'sghr7rf': 'STRING_TOLOWERCASE', // .toLowerCase()
+    'kayn': 'ARRAY_INCLUDES', // .includes() (could be string or array)
+    'twil': 'PROPERTY_LENGTH', // .length
+
+    // Array Functions
+    'zid': 'ARRAY_PUSH', // push()
+    '7yed': 'ARRAY_POP', // pop()
+    '7yedmnlwla': 'ARRAY_SHIFT', // shift()
+    'zidfllwla': 'ARRAY_UNSHIFT', // unshift()
+    'dwr': 'ARRAY_MAP', // map()
+    'n9i': 'ARRAY_FILTER', // filter()
+    'lfech': 'ARRAY_FOREACH', // forEach()
+    'l9a': 'ARRAY_FIND', // find()
+    'lmmaj': 'ARRAY_REDUCE', // reduce()
+
+    // Object Functions
+    'mfatih': 'OBJECT_KEYS', // Object.keys()
+    'qiyam': 'OBJECT_VALUES', // Object.values()
+
+    // Date Functions
+    'daba': 'DATE_NOW', // Date.now()
+    'wa9t': 'DATE_CONSTRUCTOR', // new Date()
+    '3am': 'DATE_GETFULLYEAR', // getFullYear()
+    'chhr': 'DATE_GETMONTH', // getMonth()
+    'nhar': 'DATE_GETDATE', // getDate()
+
+     // Timers
+    'sta9': 'SET_TIMEOUT', // setTimeout()
+    'krr': 'SET_INTERVAL', // setInterval()
+
+    // Error Throwing
+    'rmmi': 'THROW', // throw() - treated like a builtin function call
 };
 
 const OPERATORS = ['+', '-', '*', '/', '%', '=', '==', '!=', '<', '>', '<=', '>=', '&&', '||', '!', '++', '--', '.', '=>']; // Added ., =>, %
@@ -949,7 +980,7 @@ class Environment {
             return this.enclosing.get(token);
         }
 
-        throw new Error(`[Ln ${token.line}, Col ${token.column}] Variable '${name}' ma declaritch.`); // Undefined variable
+        throw runtimeError(token, `Variable '${name}' ma declaritch.`); // Undefined variable
     }
 
      // Get value from a specific environment distance (for closures)
@@ -1031,9 +1062,9 @@ function runtimeError(node: ASTNode | Token, message: string): Error {
     const line = node?.line ?? '?';
     const col = node?.column ?? '?';
     let context = '';
-     if ('type' in node && node.type !== 'Literal' && node.value !== undefined) {
+     if ('type' in node && node.type !== 'Literal' && node.value !== undefined && typeof node.value === 'string') {
         context = ` 3nd '${node.value}'`;
-     } else if ('name' in node) {
+     } else if ('name' in node && typeof node.name === 'string') {
          context = ` 3nd '${node.name}'`;
      }
     return new Error(`[Ln ${line}, Col ${col}] Runtime Ghalat${context}: ${message}`);
@@ -1091,6 +1122,12 @@ class Interpreter {
               }
               toString() { return "<native dala ns>"; }
           }(), true);
+
+           // Define 'undefined' and 'null' as global constants
+            this.globals.define('mchmcha', undefined, true);
+            this.globals.define('farkha', null, true);
+            this.globals.define('undefined', undefined, true); // Allow English keyword too
+            this.globals.define('null', null, true); // Allow English keyword too
 
      }
 
@@ -1739,3 +1776,4 @@ export function interpret(code: string): InterpretationResult {
         return { output: [], error: e.message || "Kayn chi ghalat f code 9bel l execution." };
     }
 }
+
