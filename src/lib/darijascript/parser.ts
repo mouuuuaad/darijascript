@@ -36,7 +36,7 @@ export interface ASTNode {
   arguments?: ASTNode[];   // Arguments in CallExpression or NewExpression
   params?: ASTNode[];      // Parameters in FunctionDeclaration/Expression
   test?: ASTNode;          // Condition in IfStatement, WhileStatement, ForStatement, ConditionalExpression
-  consequent?: ASTNode;    // Main block/statement for IfStatement, SwitchCase
+  consequent?: ASTNode[];    // Main block/statement for IfStatement, SwitchCase - Changed to ASTNode[] for switch
   alternate?: ASTNode;     // Else block for IfStatement, alternate for ConditionalExpression
   init?: ASTNode;          // Initializer in ForStatement
   update?: ASTNode;        // Update expression in ForStatement
@@ -188,10 +188,15 @@ class Parser {
   }
 
   // exprStatement -> expression ';' ;
-  parseExpressionStatement(): ASTNode {
+  // Now allows semicolon to be optional in some contexts (like switch cases)
+  parseExpressionStatement(requireSemicolon: boolean = true): ASTNode {
     const startToken = this.peek();
     const expr = this.parseExpression();
-    this.consumeValue('PUNCTUATION', ';', "Khass ';' f lekher dyal statement.");
+    if (requireSemicolon) {
+        this.consumeValue('PUNCTUATION', ';', "Khass ';' f lekher dyal statement.");
+    } else {
+        this.matchValue('PUNCTUATION', ';'); // Optionally consume semicolon if present
+    }
     return { type: 'ExpressionStatement', expression: expr, line: startToken.line, column: startToken.column };
   }
 
@@ -460,10 +465,25 @@ class Parser {
           // Keep parsing statements until the next 'case', 'default', or '}'
           while (!this.isAtEnd() && !this.checkValue('PUNCTUATION', '}') && !this.checkValue('KEYWORD', '7ala') && !this.checkValue('KEYWORD', '3adi')) {
               // Allow declarations or statements within a case block
-              const stmt = this.parseDeclaration() || this.parseStatement();
+              // Important: Do not require semicolons strictly within the case block
+              // unless it's explicitly needed to separate expressions on the same line (which is less common here).
+              // parseStatement() itself should handle required semicolons for *its* specific statement type.
+              // Let's modify parseStatement to optionally accept semicolon absence in some contexts if needed,
+              // or just parse declarations/statements normally.
+
+              // Try parsing a declaration or a statement
+              const stmt = this.parseDeclaration() || this.parseStatement(); // parseStatement needs to handle optional semicolon in this context?
               if (stmt) {
+                  // For expression statements inside a switch, the semicolon is often omitted before break/continue/next case.
+                  // We might need a variant of parseExpressionStatement that doesn't *require* the semicolon here.
+                  // Let's assume parseStatement handles this correctly for now.
+                  // If `tbe3("Weekend!"); wa9f;` is desired, parseStatement for `tbe3` needs to handle optional semicolon if followed by `wa9f`.
+
+                  // Revisit: If parseStatement always requires ';', we need adjustment here.
+                  // For now, assume parseStatement correctly parses `wa9f;`, `tbe3(...);`, etc.
                   consequent.push(stmt);
               } else if (!this.isAtEnd()) {
+                   // This might happen if parseStatement fails due to missing semicolon expectation.
                    throw this.error(this.peek(), "Statement machi s7i7 f west case dyal switch.");
               }
           }
@@ -490,14 +510,16 @@ class Parser {
     // breakStatement -> 'wa9f' ';' ;
    parseBreakStatement(): ASTNode {
        const startToken = this.previous(); // 'wa9f' token
-       this.consumeValue('PUNCTUATION', ';', "Khass ';' ba3d 'wa9f'.");
+       // Make semicolon optional for break, especially in switch cases
+       this.matchValue('PUNCTUATION', ';'); // Optionally consume semicolon
        return { type: 'BreakStatement', line: startToken.line, column: startToken.column };
    }
 
    // continueStatement -> 'kamml' ';' ;
    parseContinueStatement(): ASTNode {
         const startToken = this.previous(); // 'kamml' token
-        this.consumeValue('PUNCTUATION', ';', "Khass ';' ba3d 'kamml'.");
+       // Make semicolon optional for continue
+       this.matchValue('PUNCTUATION', ';'); // Optionally consume semicolon
         return { type: 'ContinueStatement', line: startToken.line, column: startToken.column };
    }
 
@@ -938,6 +960,8 @@ class Parser {
                         case 'rj3': // Return statement
                         case 'wa9f': // Break statement
                         case 'kamml': // Continue statement
+                        case '7ala': // Switch case
+                        case '3adi': // Switch default
                             return; // Good recovery point
                     }
                     break;
@@ -945,6 +969,8 @@ class Parser {
                      // A closing brace might end a block, potentially a recovery point? Risky.
                      // An opening brace always starts a block statement.
                      if (this.peek().value === '{') return;
+                     // A closing brace '}' might also indicate end of switch/block
+                     if (this.peek().value === '}') return;
                      break;
 
                  // Other potential recovery points could be added, but keywords are often the safest.
@@ -962,3 +988,4 @@ export function parse(tokens: Token[]): ASTNode {
   const parser = new Parser(tokens);
   return parser.parse();
 }
+

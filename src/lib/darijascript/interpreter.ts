@@ -27,8 +27,8 @@ const KEYWORDS = [
   'msk', // catch
   'fakhr', // finally
   'bdl3la', // switch
-  '7ala', // case
-  '3adi', // default
+  '7ala', // case <-- Starts with number
+  '3adi', // default <-- Starts with number
   'mnin', // from (for...of/in) -> Keep? Not standard JS 'for' structure
   'hta', // until/to (for loops) -> Keep? Not standard JS 'for' structure
   'farkha', // null
@@ -156,8 +156,20 @@ function tokenize(code: string): Token[] {
       continue;
     }
 
+    // Check for specific keywords starting with numbers *before* general identifiers/numbers
+    // Ensure we match the whole word using regex lookahead for non-word characters or end of string
+    if (code.substring(cursor).match(/^7ala(?!\w)/)) {
+        tokens.push({ type: 'KEYWORD', value: '7ala', line, column: startColumn });
+        cursor += 4; column += 4; continue;
+    }
+    if (code.substring(cursor).match(/^3adi(?!\w)/)) {
+        tokens.push({ type: 'KEYWORD', value: '3adi', line, column: startColumn });
+        cursor += 4; column += 4; continue;
+    }
+    // Add other number-starting keywords here if any (e.g., 3am, 7yed)
+    // Note: BUILTIN_METHODS check below should handle these if they are not *strictly* keywords
 
-    // Identifiers, keywords, built-ins, booleans
+    // Identifiers, keywords (starting with letter/underscore), built-ins, booleans
     if (/[a-zA-Z_]/.test(char)) { // Start with letter or underscore
       let word = '';
       while (cursor < code.length && /[a-zA-Z0-9_]/.test(code[cursor])) { // Continue with letters, numbers, or underscore
@@ -171,23 +183,19 @@ function tokenize(code: string): Token[] {
       } else if (word in BOOLEAN_LITERALS) {
         tokens.push({ type: 'BOOLEAN', value: BOOLEAN_LITERALS[word], line, column: startColumn });
       } else if (word in BUILTIN_FUNCTIONS) {
-        // Distinguish built-in function names if needed by parser/interpreter
-        tokens.push({ type: 'IDENTIFIER', value: word, line, column: startColumn }); // Treat as identifier for now
-        // Or: tokens.push({ type: 'BUILTIN_FUNCTION_NAME', value: word, line, column: startColumn });
+        tokens.push({ type: 'IDENTIFIER', value: word, line, column: startColumn }); // Treat as identifier
       } else if (word in BUILTIN_PROPERTIES) {
          tokens.push({ type: 'IDENTIFIER', value: word, line, column: startColumn }); // Treat as identifier
-         // Or: tokens.push({ type: 'BUILTIN_PROPERTY_NAME', value: word, line, column: startColumn });
       } else if (BUILTIN_METHODS.includes(word)) {
+         // Includes methods starting with numbers like 7yed, 3am handled here if not caught above
          tokens.push({ type: 'IDENTIFIER', value: word, line, column: startColumn }); // Treat as identifier
-         // Or: tokens.push({ type: 'BUILTIN_METHOD_NAME', value: word, line, column: startColumn });
-      }
-      else {
+      } else {
         tokens.push({ type: 'IDENTIFIER', value: word, line, column: startColumn });
       }
       continue;
     }
 
-    // Numbers (integer and float)
+    // Numbers (integer and float) - This comes *after* checking keywords like 7ala, 3adi
     if (/\d/.test(char) || (char === '.' && /\d/.test(code[cursor + 1]))) { // Starts with digit or '.' followed by digit
         let numStr = '';
         let hasDecimal = false;
@@ -491,7 +499,7 @@ class Interpreter {
                      }
                      // Capture output for specific functions
                      if (['tbe3', 'ghlat', 'nbehh'].includes(name)) {
-                         const formattedArgs = args.map(this.formatValueForOutput).join(' ');
+                         const formattedArgs = args.map(arg => this.formatValueForOutput(arg)).join(' ');
                          this.output.push(formattedArgs);
                          // Still call the original console method
                          return nativeFunc.apply(console, args);
@@ -1530,3 +1538,4 @@ export function interpret(code: string): { output: string[], error?: string } {
     return { output: output, error: `Ghalat System: ${errorMessage}` };
   }
 }
+
