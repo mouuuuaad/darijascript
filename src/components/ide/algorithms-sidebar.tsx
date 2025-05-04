@@ -207,4 +207,3 @@ export function AlgorithmsSidebar({ isOpen, onClose, onSelectAlgorithm }: Algori
     </div>
   );
 }
-```
