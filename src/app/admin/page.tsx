@@ -8,13 +8,12 @@ import { AuthGuard } from '@/components/auth/auth-guard';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { auth } from '@/lib/firebase/client';
-import { signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { signOut, GoogleAuthProvider, signInWithPopup, UserCredential } from 'firebase/auth';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { AlertTriangle, LogIn, LogOut, Prayer } from 'lucide-react'; // Import icons
-
+import { AlertTriangle, LogIn, LogOut, Prayer, ShieldAlert } from 'lucide-react'; // Import icons
 
 interface Prayer {
   id: string;
@@ -31,6 +30,8 @@ const formatTimestamp = (timestamp: Timestamp | null): string => {
   return date.toLocaleString(); // Adjust formatting as desired
 };
 
+const ALLOWED_ADMIN_EMAIL = "mouaadidoufkir2@gmail.com"; // Define the allowed admin email
+
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth();
@@ -38,19 +39,36 @@ export default function AdminPage() {
   const [loadingPrayers, setLoadingPrayers] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Login with Google
+  // Login with Google and check email
   const handleLogin = async () => {
+    setError(null); // Clear previous errors
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
+      const result: UserCredential = await signInWithPopup(auth, provider);
+      // Check if the logged-in user's email is the allowed admin email
+      if (result.user.email !== ALLOWED_ADMIN_EMAIL) {
+        // If not the allowed email, sign them out immediately and show an error
+        await signOut(auth);
+        console.warn(`Unauthorized login attempt by ${result.user.email}`);
+        setError(`Access denied. Only ${ALLOWED_ADMIN_EMAIL} can log in.`);
+      } else {
+        // Allowed user logged in successfully
+        console.log(`Admin ${result.user.email} logged in successfully.`);
+      }
+    } catch (error: any) {
       console.error("Error during Google sign-in:", error);
-      setError("Failed to sign in with Google.");
+       // Handle specific error codes if needed
+       if (error.code === 'auth/popup-closed-by-user') {
+        setError("Sign-in cancelled.");
+       } else {
+         setError("Failed to sign in with Google.");
+       }
     }
   };
 
   // Logout
   const handleLogout = async () => {
+    setError(null); // Clear errors on logout
     try {
       await signOut(auth);
     } catch (error) {
@@ -61,8 +79,10 @@ export default function AdminPage() {
 
 
   useEffect(() => {
-    // Only fetch prayers if the user is logged in
-    if (user) {
+    // Only fetch prayers if the user is logged in *and* has the allowed email
+    // The check in handleLogin ensures only the allowed user can stay logged in,
+    // but this adds an extra layer of security.
+    if (user && user.email === ALLOWED_ADMIN_EMAIL) {
       setLoadingPrayers(true);
       setError(null); // Clear previous errors
       const prayersCollection = collection(firestore, 'prayers');
@@ -86,8 +106,13 @@ export default function AdminPage() {
       // Cleanup listener on unmount or when user logs out
       return () => unsubscribe();
     } else {
-      setPrayers([]); // Clear prayers if user logs out
-      setLoadingPrayers(false); // Not loading if not logged in
+      setPrayers([]); // Clear prayers if user logs out or is not the allowed admin
+      setLoadingPrayers(false); // Not loading if not logged in or not authorized
+      if (user && user.email !== ALLOWED_ADMIN_EMAIL) {
+          // This case shouldn't happen if handleLogin works correctly, but as a fallback:
+          setError("Unauthorized access.");
+          handleLogout(); // Force logout if somehow an unauthorized user reaches here
+      }
     }
   }, [user]); // Re-run effect when user changes
 
@@ -109,12 +134,20 @@ export default function AdminPage() {
              <CardHeader>
                  <CardTitle className="text-2xl font-bold text-center text-primary">Admin Login</CardTitle>
                  <CardDescription className="text-center text-muted-foreground">
-                     Please sign in to access the admin dashboard.
+                     Please sign in with the authorized Google account.
                  </CardDescription>
              </CardHeader>
              <CardContent className="flex flex-col items-center gap-4">
                  {error && (
-                      <p className="text-destructive text-sm flex items-center gap-1"><AlertTriangle size={14}/> {error}</p>
+                      // Use a more prominent error display for access denied
+                      error.startsWith("Access denied") ? (
+                           <p className="text-destructive text-sm text-center font-semibold flex items-center justify-center gap-1 p-2 bg-destructive/10 border border-destructive/30 rounded-md">
+                              <ShieldAlert size={16}/> {error}
+                           </p>
+                      ) : (
+                           <p className="text-destructive text-sm flex items-center gap-1"><AlertTriangle size={14}/> {error}</p>
+                      )
+
                   )}
                  <Button onClick={handleLogin} className="w-full bg-button-primary-gradient text-primary-foreground hover:opacity-90 shadow-md">
                      <LogIn size={16} className="mr-2" /> Sign In with Google
@@ -126,11 +159,9 @@ export default function AdminPage() {
   }
 
 
-  // If user is authenticated, show the admin dashboard
+  // If user is authenticated AND is the allowed admin, show the admin dashboard
   return (
-    // Use AuthGuard to protect this page content further if needed,
-    // though the conditional rendering based on 'user' already does this.
-    // <AuthGuard>
+    // <AuthGuard> // AuthGuard can still be used, but the primary check is now email-based
       <div className="container mx-auto p-4 md:p-8 bg-gradient-to-br from-background to-[hsl(var(--primary)/0.1)] min-h-screen text-foreground">
         <div className="flex justify-between items-center mb-6 md:mb-10 pb-4 border-b border-border/30">
           <h1 className="text-3xl md:text-4xl font-bold text-primary flex items-center gap-2">
@@ -144,7 +175,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-         {error && (
+         {error && !error.startsWith("Access denied") && ( // Don't show access denied error here again
               <div className="mb-4 p-3 bg-destructive/10 border border-destructive/50 text-destructive rounded-md text-sm flex items-center gap-2">
                   <AlertTriangle size={16}/> {error}
               </div>
