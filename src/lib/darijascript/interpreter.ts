@@ -357,6 +357,8 @@ class Environment {
     }
 
     declare(name: string, value: any, isConstant: boolean) {
+        // Allow re-declaration of 'hadi' within functions/scopes if necessary?
+        // Current behavior prevents it, which might be okay.
         if (this.vars.has(name) && Object.prototype.hasOwnProperty.call(this.vars, name)) {
             throw new Error(`Variable "${name}" déjà déclarée f had l scope.`);
         }
@@ -382,15 +384,18 @@ class Environment {
     lookup(name: string): any {
         const env = this.resolve(name);
         if (!env) {
+             // Look for built-in JS objects/functions if not found in DarijaScript env
             if (typeof window !== 'undefined' && name in window) {
-                return (window as any)[name];
+                 return (window as any)[name]; // e.g., Math, Object, Array
             }
-             if (typeof global !== 'undefined' && name in global) {
-                 return (global as any)[name];
-             }
+            if (typeof global !== 'undefined' && name in global) {
+                  return (global as any)[name];
+            }
             throw new Error(`Variable "${name}" ma declaritch.`);
         }
         if (!env.vars.has(name)) {
+            // This condition should theoretically not be met if resolve worked,
+            // but keep as a safeguard.
              throw new Error(`Internal Error: Variable "${name}" not found in resolved environment.`);
         }
         return env.vars.get(name);
@@ -436,6 +441,7 @@ class DarijaScriptFunction {
         this.closure = closure;
     }
 
+    // Allows `instanceof DarijaScriptFunction` checks to work correctly
     get [Symbol.toStringTag]() {
         return 'Function';
     }
@@ -494,7 +500,9 @@ class Interpreter {
         // Inject language constants
         this.globalEnv.declare('mchmcha', undefined, true);
         this.globalEnv.declare('farkha', null, true);
-        this.globalEnv.declare('hadi', typeof window !== 'undefined' ? window : undefined, true);
+        // Declare 'hadi' (this) in the global scope. Its value might change in functions.
+        // Initialize with window/global or undefined based on environment.
+        this.globalEnv.declare('hadi', typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : undefined), true);
     }
 
     interpret(node: ASTNode = this.ast, env: Environment = this.globalEnv): any {
@@ -505,14 +513,14 @@ class Interpreter {
         } catch (error: any) {
             if (this.errorOccurred) return;
              if (error instanceof ReturnValue || error instanceof BreakSignal || error instanceof ContinueSignal) {
-                throw error;
+                throw error; // These are control flow signals, not runtime errors
              }
             this.errorOccurred = true;
             const errorNode = node;
             const errorMessage = `Runtime Ghalat [Ln ${errorNode.line ?? '?'}, Col ${errorNode.column ?? '?'}]: ${error.message || error}`;
             this.output.push(`Ghalat: ${errorMessage}`);
             console.error("Interpreter Runtime Error:", errorMessage, error);
-            return { error: errorMessage };
+            return { error: errorMessage }; // Return an error object for the caller
         }
     }
 
@@ -526,7 +534,7 @@ class Interpreter {
                 let lastVal: any = undefined;
                 for (const stmt of node.body ?? []) {
                     lastVal = this.evaluate(stmt, env);
-                    if (this.errorOccurred) return lastVal;
+                    if (this.errorOccurred) return lastVal; // Propagate error object
                 }
                 return lastVal;
 
@@ -614,7 +622,7 @@ class Interpreter {
               let value: any = undefined; // Default to undefined
              if (declarator.initializer) {
                  value = this.evaluate(declarator.initializer, env);
-                 if (this.errorOccurred) return value;
+                 if (this.errorOccurred) return value; // Propagate error object
              }
              env.declare(name, value, isConstant);
          }
@@ -630,7 +638,7 @@ class Interpreter {
               const name = leftNode.name!;
               let finalValue;
                try {
-                    const currentVal = env.lookup(name);
+                    const currentVal = env.lookup(name); // Check if exists and get current value
                     switch (node.operator) {
                         case '=': finalValue = rightValue; break;
                         case '+=': finalValue = currentVal + rightValue; break;
@@ -641,16 +649,15 @@ class Interpreter {
                         default: throw new Error(`Assignment operator ma fhamtouch: ${node.operator}`);
                     }
                } catch (lookupError) {
-                   // Allow assignment to undeclared global (implicit global) like non-strict JS?
-                   // For now, enforce declaration before assignment via env.assign's check.
+                   // Assignment to undeclared variable error is handled by env.assign
                    throw lookupError;
                }
-              return env.assign(name, finalValue);
+              return env.assign(name, finalValue); // Assign the calculated value
 
           } else if (leftNode.type === 'MemberExpression') {
               const obj = this.evaluate(leftNode.object!, env);
               if (this.errorOccurred) return obj;
-               if (obj == null) {
+               if (obj == null) { // Check for null or undefined
                     throw new Error(`Ma ymknch t assigner l property dyal ${obj === null ? 'farkha' : 'mchmcha'}.`);
                }
 
@@ -663,11 +670,14 @@ class Interpreter {
                       throw new Error("Property assignment khass smia.");
                   }
                   propName = leftNode.property.name!;
-                  propName = BUILTIN_PROPERTIES[propName] || propName;
+                  // Do NOT map Darija property name to JS here for assignment.
+                  // We assign to the property as named in DarijaScript.
+                  // propName = BUILTIN_PROPERTIES[propName] || propName;
               }
 
                let finalValue;
                 try {
+                    // Get current value directly using the determined propName
                     const currentVal = obj[propName];
                     switch (node.operator) {
                         case '=': finalValue = rightValue; break;
@@ -678,9 +688,10 @@ class Interpreter {
                         case '%=': if (rightValue === 0) throw new Error("Modulus b zero mamno3!"); finalValue = currentVal % rightValue; break;
                         default: throw new Error(`Assignment operator ma fhamtouch: ${node.operator}`);
                     }
-                    obj[propName] = finalValue;
+                    obj[propName] = finalValue; // Assign the final value
                     return finalValue;
                 } catch (error: any) {
+                    // Catch potential errors during property access or assignment (e.g., on non-extensible objects)
                     throw new Error(`Maقدرتش n assigner l property "${String(propName)}" 3la ${typeof obj}: ${error.message}`);
                 }
           } else {
@@ -709,8 +720,10 @@ class Interpreter {
     visitLogicalExpression(node: ASTNode, env: Environment): any {
          const left = this.evaluate(node.left!, env);
          if (this.errorOccurred) return left;
+         // Short-circuiting behavior:
          if (node.operator === '||') return this.isTruthy(left) ? left : this.evaluate(node.right!, env);
          if (node.operator === '&&') return !this.isTruthy(left) ? left : this.evaluate(node.right!, env);
+         // If error occurs in right operand evaluation, it will be caught by interpret()
          throw new Error(`Logical operator ma 3rftouch: ${node.operator}`);
     }
 
@@ -720,7 +733,7 @@ class Interpreter {
          if (this.errorOccurred) return operand;
         switch (node.operator) {
             case '-': return -operand; case '!': return !this.isTruthy(operand);
-            case 'no3': return typeof operand; case '+': return +operand;
+            case 'no3': return typeof operand; case '+': return +operand; // Unary plus for type coercion
             default: throw new Error(`Operator dial unary ma 3rftouch: ${node.operator}`);
         }
     }
@@ -729,12 +742,12 @@ class Interpreter {
         const argNode = node.argument!;
         if (argNode.type === 'Identifier') {
             const varName = argNode.name!;
-            let value = env.lookup(varName);
+            let value = env.lookup(varName); // Ensure variable exists
             if (typeof value !== 'number') throw new Error(`Operator "${node.operator}" khass ykoun m3a number.`);
             const originalValue = value;
             value = node.operator === '++' ? value + 1 : value - 1;
-            env.assign(varName, value);
-            return node.prefix ? value : originalValue;
+            env.assign(varName, value); // Assign back the updated value
+            return node.prefix ? value : originalValue; // Return new value for prefix, old for postfix
         } else if (argNode.type === 'MemberExpression') {
            const obj = this.evaluate(argNode.object!, env);
            if (this.errorOccurred) return obj;
@@ -746,14 +759,15 @@ class Interpreter {
             } else {
                  if (!argNode.property || argNode.property.type !== 'Identifier') throw new Error("Property update khass smia.");
                  propName = argNode.property.name!;
-                 propName = BUILTIN_PROPERTIES[propName] || propName;
+                 // Do not map property name here, update the DarijaScript named property
+                 // propName = BUILTIN_PROPERTIES[propName] || propName;
             }
-             let value = obj[propName];
+             let value = obj[propName]; // Get current value
              if (typeof value !== 'number') throw new Error(`Operator "${node.operator}" khass ykoun m3a number property.`);
              const originalValue = value;
-             value = node.operator === '++' ? value + 1 : value - 1;
+             value = node.operator === '++' ? value + 1 : value - 1; // Calculate new value
               try {
-                  obj[propName] = value;
+                  obj[propName] = value; // Assign the updated value back
                   return node.prefix ? value : originalValue;
               } catch (error: any) {
                    throw new Error(`Maقدرتش n update property "${String(propName)}" 3la ${typeof obj}: ${error.message}`);
@@ -771,10 +785,11 @@ class Interpreter {
         // Evaluate arguments first
         const args = (node.arguments ?? []).map(arg => {
             const evaluatedArg = this.evaluate(arg, env);
-            if (this.errorOccurred) throw new Error("Error evaluating argument");
+            if (this.errorOccurred) throw new Error("Ghalat f argument dyal function call."); // Throw to signal error
             return evaluatedArg;
         });
-        if (this.errorOccurred) return; // Stop if argument evaluation failed
+        if (this.errorOccurred) return; // Should have been caught by the throw above
+
 
         // Determine the function and 'this' context
         if (calleeNode.type === 'MemberExpression') {
@@ -784,6 +799,8 @@ class Interpreter {
             if (obj == null) throw new Error(`Ma ymknch tnadi method mn ${obj === null ? 'farkha' : 'mchmcha'}.`);
 
             let propName: string | number | symbol;
+            let darijaPropName: string | null = null; // Store original Darija name if needed
+
             if (calleeNode.computed) {
                 propName = this.evaluate(calleeNode.property!, env);
                 if (this.errorOccurred) return propName;
@@ -791,64 +808,61 @@ class Interpreter {
                 if (!calleeNode.property || calleeNode.property.type !== 'Identifier') {
                     throw new Error("Method call khass smia.");
                 }
-                propName = calleeNode.property.name!;
-                // Check if it's a Darija built-in method name
-                const mappedJsMethod = this.mapDarijaMethodToJs(propName);
-                if (mappedJsMethod) {
-                    propName = mappedJsMethod; // Use the JS method name
-                }
+                darijaPropName = calleeNode.property.name!;
+                // Check if it's a Darija built-in method name and map to JS name for lookup
+                const mappedJsMethod = this.mapDarijaMethodToJs(darijaPropName);
+                propName = mappedJsMethod || darijaPropName; // Use mapped JS name if exists, else original Darija name
             }
 
+            // Get the function from the object using the determined property name (JS or Darija)
             funcToCall = obj[propName];
             thisContext = obj; // 'this' is the object itself
 
-             // Special handling for Array methods accessed via Darija names
-            if (thisContext instanceof Array && typeof propName === 'string' && BUILTIN_METHODS.includes(propName)) {
-                 const mappedJsMethod = this.mapDarijaMethodToJs(propName);
-                 if (mappedJsMethod && typeof Array.prototype[mappedJsMethod as keyof Array<any>] === 'function') {
-                     funcToCall = Array.prototype[mappedJsMethod as keyof Array<any>];
+             // Special handling for built-in methods like Array.map/filter etc.
+             const requiresCallbackWrapper = (obj instanceof Array || typeof obj === 'string') &&
+                                            typeof propName === 'string' &&
+                                            ['map', 'filter', 'find', 'forEach', 'reduce'].includes(propName);
 
-                     // Handle methods like map, filter, find, reduce which take callbacks
-                     if (['map', 'filter', 'find', 'forEach', 'reduce'].includes(mappedJsMethod)) {
-                         const darijaCallback = args[0];
-                         if (darijaCallback instanceof DarijaScriptFunction) {
-                             // Wrap the DarijaScript function in a JS function
-                             const jsCallback = (...callbackArgs: any[]) => {
-                                 const callbackEnv = darijaCallback.closure.extend();
-                                 // Map JS callback arguments to Darija function parameters
-                                 darijaCallback.params.forEach((param, index) => {
-                                     if (param.name) callbackEnv.declare(param.name, callbackArgs[index], false);
-                                 });
-                                 let returnValue: any = undefined;
-                                  try {
-                                     this.evaluate(darijaCallback.body, callbackEnv);
-                                  } catch (e) {
-                                     if (e instanceof ReturnValue) { returnValue = e.value; }
-                                     else { throw e; } // Re-throw other errors/signals
-                                  }
-                                  return returnValue;
-                             };
-                             args[0] = jsCallback; // Replace Darija function with JS wrapper for the call
+             if (requiresCallbackWrapper && args.length > 0 && args[0] instanceof DarijaScriptFunction) {
+                const darijaCallback = args[0];
+                 // Wrap the DarijaScript function in a JS function that sets up the correct environment
+                 const jsCallbackWrapper = (...callbackArgs: any[]) => {
+                    const callbackEnv = darijaCallback.closure.extend();
+                    // Bind arguments (value, index, array) to Darija function parameters
+                    darijaCallback.params.forEach((param, index) => {
+                         if (param.name) {
+                            callbackEnv.declare(param.name, callbackArgs[index], false);
                          }
-                     }
-                 }
-            }
-            // Similar handling for String methods
-            if (typeof thisContext === 'string' && typeof propName === 'string' && BUILTIN_METHODS.includes(propName)) {
-                 funcToCall = String.prototype[propName as keyof String];
-            }
-             // Date methods
-            if (thisContext instanceof Date && typeof propName === 'string' && BUILTIN_METHODS.includes(propName)) {
-                 funcToCall = Date.prototype[propName as keyof Date];
-            }
+                    });
+                    // Set 'hadi' (this) within the callback. Use the original 'thisContext' if available.
+                    // This might need refinement depending on desired 'this' behavior in callbacks.
+                    callbackEnv.declare('hadi', thisContext, false);
+
+                    let returnValue: any = undefined;
+                    try {
+                         // Execute the Darija function body in the new environment
+                         this.evaluate(darijaCallback.body, callbackEnv);
+                    } catch (e) {
+                         if (e instanceof ReturnValue) {
+                             returnValue = e.value;
+                         } else {
+                             throw e; // Re-throw Break/Continue or actual errors
+                         }
+                    }
+                    return returnValue;
+                 };
+                 args[0] = jsCallbackWrapper; // Replace the Darija function with the JS wrapper
+             }
 
 
         } else {
             // Regular function call: func(...)
             funcToCall = this.evaluate(calleeNode, env);
             if (this.errorOccurred) return funcToCall;
-            thisContext = env.lookup('hadi'); // Global 'this' (or undefined in strict mode)
-             // Handle static calls like Object.keys / Object.values
+            // Default 'this' for global function calls. In strict mode, should be undefined.
+            // Here, we simplify and use the global 'hadi' value.
+            thisContext = this.globalEnv.lookup('hadi');
+             // Handle static calls like Object.keys / Object.values invoked via Darija names
              if (calleeNode.type === 'Identifier') {
                  if (calleeNode.name === 'mfatih') { funcToCall = Object.keys; thisContext=Object; }
                  if (calleeNode.name === 'qiyam') { funcToCall = Object.values; thisContext=Object; }
@@ -859,8 +873,16 @@ class Interpreter {
          if (typeof funcToCall !== 'function' && !(funcToCall instanceof DarijaScriptFunction)) {
              let calleeName = 'expression';
              if (calleeNode?.type === 'Identifier') calleeName = calleeNode.name!;
-             else if (calleeNode?.type === 'MemberExpression') calleeName = 'property';
-             throw new Error(`Dak lli bghiti tnadi "${calleeName}" (value: ${typeof funcToCall}) ماشي dala.`);
+             else if (calleeNode?.type === 'MemberExpression' && calleeNode.property?.type === 'Identifier') calleeName = calleeNode.property.name!;
+              // Provide more detail if it was a mapped method
+             if(calleeNode.type === 'MemberExpression' && calleeNode.property?.type === 'Identifier'){
+                 const originalName = calleeNode.property.name!;
+                 const mappedName = this.mapDarijaMethodToJs(originalName);
+                 if(mappedName && mappedName !== originalName) {
+                      calleeName = `${originalName} (-> ${mappedName})`;
+                 }
+             }
+             throw new Error(`Dak lli bghiti tnadi "${calleeName}" (type: ${typeof funcToCall}) ماشي dala.`);
          }
 
           // Handle DarijaScript function calls
@@ -869,31 +891,28 @@ class Interpreter {
              if (funcToCall.params.length !== args.length) {
                   throw new Error(`Dala "${funcToCall.name || 'anonymous'}" katsnna ${funcToCall.params.length} arguments, 3titih ${args.length}.`);
              }
+             // Declare arguments in the function's environment
              funcToCall.params.forEach((param, index) => {
                   if (!param.name) throw new Error("Parameter khass smia.");
                   callEnv.declare(param.name, args[index], false);
              });
-              // Set 'hadi' (this) for user function call. Simplification: use global 'this'.
-             callEnv.declare('hadi', this.globalEnv.lookup('hadi'), false);
+              // Set 'hadi' (this) for the user function call.
+              // For simplicity, reuse the global 'hadi'. More complex logic could bind 'this' based on call context.
+             callEnv.declare('hadi', this.globalEnv.lookup('hadi'), false); // Should perhaps use 'thisContext' if determined?
               try {
+                 // Evaluate the function body
                  this.evaluate(funcToCall.body, callEnv);
-                 return undefined; // Implicit undefined return
+                 return undefined; // Functions implicitly return undefined if no 'rj3'
               } catch (e) {
-                  if (e instanceof ReturnValue) return e.value;
-                  else throw e;
+                  if (e instanceof ReturnValue) return e.value; // Catch return value
+                  else throw e; // Re-throw other signals/errors
               }
           } else {
-               // Native JS function calls
+               // Native JS function calls (including built-ins and methods)
                try {
-                    // The wrapper in the env handles output capture and errors for global functions
+                    // The global function wrappers handle output capture and errors
                     // For methods, we call directly using apply
-                     if (calleeNode.type === 'MemberExpression') {
-                         // Use reflect API for safer calls?
-                         return funcToCall.apply(thisContext, args);
-                     } else {
-                        // Global function (already wrapped or Object static)
-                        return funcToCall.apply(thisContext, args);
-                     }
+                    return funcToCall.apply(thisContext, args);
                } catch (error: any) {
                     let funcName = 'native function';
                      if(calleeNode.type === 'Identifier') funcName = calleeNode.name!;
@@ -908,17 +927,18 @@ class Interpreter {
         const funcName = node.id.name;
         const params = node.params ?? [];
         const body = node.body!;
-        const closure = env;
+        const closure = env; // Capture the current environment
         const dsFunction = new DarijaScriptFunction(funcName, params, body, closure);
-        env.declare(funcName, dsFunction, false);
+        env.declare(funcName, dsFunction, false); // Declare the function in the current environment
         return undefined;
     }
 
      visitFunctionExpression(node: ASTNode, env: Environment): DarijaScriptFunction {
-         const funcName = node.id?.name || null;
+         const funcName = node.id?.name || null; // Anonymous functions have null name
          const params = node.params ?? [];
          const body = node.body!;
-         const closure = env;
+         const closure = env; // Capture the current environment
+         // Return the function object itself, not declared in the env here
          return new DarijaScriptFunction(funcName, params, body, closure);
      }
 
@@ -930,23 +950,23 @@ class Interpreter {
         } else if (node.alternate) {
             return this.evaluate(node.alternate, env);
         }
-        return undefined;
+        return undefined; // No else branch executed
     }
 
       visitWhileStatement(node: ASTNode, env: Environment): any {
         let lastResult: any = undefined;
         while (this.isTruthy(this.evaluate(node.test!, env))) {
-             if (this.errorOccurred) return;
+             if (this.errorOccurred) return; // Check for errors from test evaluation
              try {
                 lastResult = this.evaluate(node.body!, env);
                 if (this.errorOccurred) return lastResult;
              } catch (e) {
-                 if (e instanceof BreakSignal) break;
-                 else if (e instanceof ContinueSignal) continue;
-                 else throw e;
+                 if (e instanceof BreakSignal) break; // Exit the loop
+                 else if (e instanceof ContinueSignal) continue; // Skip to next iteration test
+                 else throw e; // Re-throw ReturnValue or runtime errors
              }
         }
-        return undefined;
+        return undefined; // Loop finished normally
     }
 
      visitDoWhileStatement(node: ASTNode, env: Environment): any {
@@ -957,111 +977,172 @@ class Interpreter {
                 if (this.errorOccurred) return lastResult;
              } catch (e) {
                  if (e instanceof BreakSignal) break;
-                 else if (e instanceof ContinueSignal) {}
+                 else if (e instanceof ContinueSignal) {} // Continue still requires test check
                  else throw e;
              }
+             // Evaluate the test condition *after* the first iteration
              const testResult = this.evaluate(node.test!, env);
              if (this.errorOccurred) return testResult;
-             if (!this.isTruthy(testResult)) break;
+             if (!this.isTruthy(testResult)) break; // Exit if test is false
         } while (true);
         return undefined;
     }
 
      visitForStatement(node: ASTNode, env: Environment): any {
-        const forEnv = env.extend();
+        const forEnv = env.extend(); // Create a new scope for the loop variables
         let lastResult: any = undefined;
+        // Evaluate initializer in the new scope
         if (node.init) {
             this.evaluate(node.init, forEnv);
             if (this.errorOccurred) return;
         }
+        // Loop condition check
         while (!node.test || this.isTruthy(this.evaluate(node.test, forEnv))) {
-             if (this.errorOccurred) return;
+             if (this.errorOccurred) return; // Error in test evaluation
+             // Execute loop body
              try {
                 lastResult = this.evaluate(node.body!, forEnv);
                 if (this.errorOccurred) return lastResult;
              } catch (e) {
-                 if (e instanceof BreakSignal) break;
-                 else if (e instanceof ContinueSignal) {} // Handled by update below
-                 else throw e;
+                 if (e instanceof BreakSignal) break; // Exit loop
+                 else if (e instanceof ContinueSignal) {
+                      // If continue, jump directly to update, then re-test
+                      if (node.update) {
+                          this.evaluate(node.update, forEnv);
+                          if (this.errorOccurred) return;
+                      }
+                      continue; // Continue to the next loop iteration test
+                 }
+                 else throw e; // Re-throw ReturnValue or runtime errors
              }
+              // Evaluate update expression (if any) after body execution
               if (node.update) {
                  this.evaluate(node.update, forEnv);
                  if (this.errorOccurred) return;
              }
         }
-        return undefined;
+        return undefined; // Loop finished
     }
 
      visitTryStatement(node: ASTNode, env: Environment): any {
         let result: any;
         try {
             result = this.evaluate(node.block!, env);
-             if (this.errorOccurred) return result;
+             if (this.errorOccurred) return result; // Propagate error object
         } catch (error: any) {
-            if (error instanceof ReturnValue || error instanceof BreakSignal || error instanceof ContinueSignal) {
+             // Don't handle control flow signals here, re-throw them
+             if (error instanceof ReturnValue || error instanceof BreakSignal || error instanceof ContinueSignal) {
+                 // Execute finally block before re-throwing control flow signal
                  if (node.finalizer) {
                      try { this.evaluate(node.finalizer, env); }
-                     catch (finallyError: any) { throw finallyError; }
+                     catch (finallyError: any) {
+                          // Error in finally overrides the original signal/error
+                          this.errorOccurred = true;
+                          this.output.push(`Ghalat f finally block: ${finallyError.message || finallyError}`);
+                          return { error: `Ghalat f finally block: ${finallyError.message || finallyError}` };
+                     }
                  }
-                throw error;
+                throw error; // Re-throw the control flow signal
             }
+             // This is a runtime error, handle with catch/finally
             if (node.handler) {
                 const catchEnv = env.extend();
                  if (node.handler.param && node.handler.param.name) {
-                    catchEnv.declare(node.handler.param.name, error, false);
+                    // Declare the error object in the catch block's scope
+                    catchEnv.declare(node.handler.param.name, error.message || error, false); // Store message or error itself
                  }
                   try {
+                    // Execute the catch block
                     result = this.evaluate(node.handler.body!, catchEnv);
-                 } catch(catchError: any) {
+                      if (this.errorOccurred) return result; // Propagate error from catch
+                 } catch(catchBlockError: any) {
+                       // If error occurs *within* the catch block, finally still runs
                        if (node.finalizer) {
                            try { this.evaluate(node.finalizer, env); }
-                           catch (finallyError: any) { throw finallyError; }
+                           catch (finallyError: any) {
+                                this.errorOccurred = true;
+                                this.output.push(`Ghalat f finally block after catch error: ${finallyError.message || finallyError}`);
+                                return { error: `Ghalat f finally block after catch error: ${finallyError.message || finallyError}` };
+                           }
                        }
-                       throw catchError;
+                       throw catchBlockError; // Re-throw error from catch block
                  }
             } else {
+                 // No catch block, but maybe finally. If no finally, re-throw original error.
                   if (!node.finalizer) throw error;
             }
         } finally {
+             // Execute finally block if it exists, regardless of try/catch outcomes
             if (node.finalizer) {
-                 try { this.evaluate(node.finalizer, env); }
-                 catch (finallyError: any) { throw finallyError; }
+                 try {
+                     const finallyResult = this.evaluate(node.finalizer, env);
+                      // If finally throws or returns, it overrides previous outcomes
+                      // Error propagation from finally handled by the main interpret try/catch
+                      // ReturnValue from finally needs specific handling if desired (JS usually doesn't return from finally)
+                      // We'll ignore finally's return value for now, just execute it.
+                      if (this.errorOccurred) return; // Propagate error from finally
+                 }
+                 catch (finallyError: any) {
+                      // Handle control flow signals from finally? JS typically doesn't allow break/continue here.
+                      // If finally throws a runtime error, it overrides everything.
+                      if (!(finallyError instanceof ReturnValue || finallyError instanceof BreakSignal || finallyError instanceof ContinueSignal)) {
+                           this.errorOccurred = true;
+                           this.output.push(`Ghalat f finally block: ${finallyError.message || finallyError}`);
+                           return { error: `Ghalat f finally block: ${finallyError.message || finallyError}` };
+                      } else {
+                           // Re-throw control flow signals from finally if needed, though unusual
+                           throw finallyError;
+                      }
+                 }
             }
         }
+        // Return the result from try or catch block (if executed)
         return result;
      }
 
      visitMemberExpression(node: ASTNode, env: Environment): any {
         const obj = this.evaluate(node.object!, env);
         if (this.errorOccurred) return obj;
-         if (obj == null) {
+         if (obj == null) { // Check for both null and undefined
             throw new Error(`Ma ymknch tqra property mn ${obj === null ? 'farkha' : 'mchmcha'}.`);
         }
         let propName: string | number | symbol;
-        if (node.computed) {
+        if (node.computed) { // Bracket notation: obj[expr]
              propName = this.evaluate(node.property!, env);
              if (this.errorOccurred) return propName;
-        } else {
+        } else { // Dot notation: obj.prop
             if (!node.property || node.property.type !== 'Identifier') {
-                 throw new Error("Member access khass ykoun smia.");
+                 throw new Error("Member access b '.' khass ykoun smia.");
             }
-            propName = node.property.name!;
-             const mappedProp = BUILTIN_PROPERTIES[propName];
+            const darijaPropName = node.property.name!;
+             // Check if it's a mapped property like 'twil' -> 'length'
+             const mappedProp = BUILTIN_PROPERTIES[darijaPropName];
              if (mappedProp) {
-                 try { return obj[mappedProp]; }
-                 catch (error: any) { throw new Error(`Ghalat mli kan qra property "${propName}" (JS: ${mappedProp}) mn ${typeof obj}: ${error.message}`); }
+                 try { return obj[mappedProp]; } // Access using the JS name
+                 catch (error: any) { throw new Error(`Ghalat mli kan qra property "${darijaPropName}" (JS: ${mappedProp}) mn ${typeof obj}: ${error.message}`); }
              }
+             // Check if it's a mapped method name
+             const mappedMethod = this.mapDarijaMethodToJs(darijaPropName);
+             if (mappedMethod && typeof obj[mappedMethod] === 'function') {
+                // If it's a method, return it bound to the object 'this' context
+                return obj[mappedMethod].bind(obj);
+             }
+             // If not a mapped property or method, use the Darija name directly
+             propName = darijaPropName;
         }
          try {
+             // Access the property using the determined name (could be number, string, symbol, or Darija name)
             const value = obj[propName];
-            // Bind method if it's a function on the object instance
-            if (typeof value === 'function' && typeof propName === 'string' && !(value instanceof DarijaScriptFunction)) {
-                const jsMethodName = this.mapDarijaMethodToJs(propName) || propName;
-                if(typeof obj[jsMethodName as keyof typeof obj] === 'function'){
-                    return obj[jsMethodName as keyof typeof obj].bind(obj);
-                }
+            // If the retrieved value is a native JS function, bind it to the object instance.
+            // This ensures 'this' is set correctly when the method is called later.
+            // Exclude DarijaScript functions which manage their own closure/this.
+            if (typeof value === 'function' && !(value instanceof DarijaScriptFunction)) {
+                 // Check if it's actually a method of this object instance
+                 if (Object.prototype.hasOwnProperty.call(obj, propName) || propName in obj) {
+                     return value.bind(obj);
+                 }
             }
-            return value;
+            return value; // Return the raw value (could be primitive, object, undefined, etc.)
          } catch (error: any) {
              throw new Error(`Ghalat mli kan qra property "${String(propName)}" mn ${typeof obj}: ${error.message}`);
          }
@@ -1072,23 +1153,22 @@ class Interpreter {
         if (this.errorOccurred) return callee;
         const args = (node.arguments ?? []).map(arg => {
              const evalArg = this.evaluate(arg, env);
-             if (this.errorOccurred) throw new Error("Error evaluating constructor argument");
+             if (this.errorOccurred) throw new Error("Ghalat f argument dyal constructor.");
              return evalArg;
         });
          if (this.errorOccurred) return;
-        if (typeof callee !== 'function') {
+
+        // Check if the callee is a constructor (native JS function)
+        if (typeof callee !== 'function' || callee instanceof DarijaScriptFunction) {
             let calleeName = node.callee?.type === 'Identifier' ? node.callee.name! : 'expression';
-            throw new Error(`Dak lli bghiti dir lih 'jdid' ("${calleeName}") ماشي constructor.`);
+            throw new Error(`Dak lli bghiti dir lih 'jdid' ("${calleeName}") ماشي constructor s7i7.`);
         }
-         if (callee instanceof DarijaScriptFunction) {
-             throw new Error(`Ma ymknch tsta3ml 'jdid' m3a dala dyal DarijaScript "${callee.name || 'anonymous'}" (mazal mam suprtatch).`);
-         }
          try {
-             // Allow constructing built-ins like Date
+             // Handle specific built-in constructors like Date ('wa9t')
              if (node.callee?.type === 'Identifier' && node.callee.name === 'wa9t') {
                   return new Date(...args);
              }
-             // Potentially allow other native constructors if needed
+             // Allow constructing other native JS classes if available globally
              return new (callee as any)(...args);
          } catch (error: any) {
               let constructorName = node.callee?.type === 'Identifier' ? node.callee.name : 'constructor';
@@ -1099,66 +1179,86 @@ class Interpreter {
     visitSwitchStatement(node: ASTNode, env: Environment): any {
         const discriminant = this.evaluate(node.discriminant!, env);
         if (this.errorOccurred) return discriminant;
-        const switchEnv = env.extend();
+        const switchEnv = env.extend(); // Scope for potential block-scoped variables within cases
         let matched = false;
-        let fallThrough = false;
-        let defaultCaseHandler: ASTNode | null = null;
-        let blockResult: any = undefined;
+        let fallThrough = false; // Track if we are falling through cases
+        let defaultCaseNode: ASTNode | null = null;
 
+        // Find the default case first (if any)
         for (const caseNode of node.cases ?? []) {
-            if (!caseNode.test) { defaultCaseHandler = caseNode; break; }
+            if (!caseNode.test) {
+                defaultCaseNode = caseNode;
+                break;
+            }
         }
 
         try {
+            // Iterate through cases
             for (const caseNode of node.cases ?? []) {
                  if (this.errorOccurred) break;
-                let isMatch = false;
-                if (caseNode.test) {
-                    if (!matched || fallThrough) {
-                        const caseValue = this.evaluate(caseNode.test, switchEnv);
-                        if (this.errorOccurred) break;
-                        if (discriminant === caseValue) {
-                            isMatch = true; matched = true; fallThrough = true;
-                        }
-                    }
-                } else continue;
+                 let isCurrentMatch = false;
+                 // Skip default case in this loop
+                 if (!caseNode.test) continue;
 
-                if (isMatch || fallThrough) {
-                    for (const stmt of caseNode.consequent ?? []) {
-                        blockResult = this.evaluate(stmt, switchEnv);
-                        if (this.errorOccurred) throw new Error("Error in switch case");
-                    }
-                }
-            }
-            if (defaultCaseHandler && (!matched || fallThrough)) {
-                 for (const stmt of defaultCaseHandler.consequent ?? []) {
-                     blockResult = this.evaluate(stmt, switchEnv);
-                     if (this.errorOccurred) throw new Error("Error in default switch case");
+                 // Evaluate case test only if no previous match or currently falling through
+                 if (!matched || fallThrough) {
+                     const caseValue = this.evaluate(caseNode.test, switchEnv);
+                     if (this.errorOccurred) break;
+                     // Use strict equality (===) for matching, like JS switch
+                     if (discriminant === caseValue) {
+                         isCurrentMatch = true;
+                         matched = true;
+                         fallThrough = true; // Start falling through
+                     }
+                 }
+
+                 // Execute consequent block if it's a match or we are falling through
+                 if (isCurrentMatch || fallThrough) {
+                     for (const stmt of caseNode.consequent ?? []) {
+                         this.evaluate(stmt, switchEnv); // Evaluate statement
+                         if (this.errorOccurred) throw new Error("Ghalat f west switch case statement."); // Throw to break out
+                     }
+                     // Fallthrough continues unless a 'wa9f' (break) is encountered (handled by throwing BreakSignal)
                  }
             }
+
+            // Execute default case if no match occurred, or if we fell through to it
+             if (defaultCaseNode && (!matched || fallThrough)) {
+                  for (const stmt of defaultCaseNode.consequent ?? []) {
+                     this.evaluate(stmt, switchEnv);
+                     if (this.errorOccurred) throw new Error("Ghalat f west default switch case statement.");
+                 }
+             }
+
         } catch (e) {
-             if (e instanceof BreakSignal) {}
-             else if (e instanceof ContinueSignal) {} // Treat like break in switch
-             else throw e;
+             if (e instanceof BreakSignal) {
+                 // 'wa9f' encountered, exit the switch normally
+             } else if (e instanceof ContinueSignal) {
+                 // 'kamml' is generally not meaningful directly inside a switch, treat like break?
+                 // Or throw an error? For now, act like break.
+             } else {
+                 throw e; // Re-throw ReturnValue or runtime errors
+             }
          }
-        return undefined;
+        return undefined; // Switch statement itself doesn't return a value
     }
 
      visitArrayExpression(node: ASTNode, env: Environment): any[] {
         const elements = (node.elements ?? []).map(element => {
-            // Handle potential null elements (e.g., [1, , 3]) if parser supports them
+            // Handle elision (empty slots like [1, , 3])
             if (element === null || element === undefined) {
-                // Represent sparse array elements. JS arrays handle this naturally.
-                return undefined; // Or handle differently if needed
+                // JS arrays handle sparse elements natively, return undefined for the slot
+                return undefined;
             }
             const value = this.evaluate(element, env);
-            if (this.errorOccurred) throw new Error("Error evaluating array element");
+            if (this.errorOccurred) throw new Error("Ghalat f evaluation dyal element f array.");
             return value;
         });
+         // If an error occurred during element evaluation, the map would have thrown.
+         // If we reach here, elements array is populated (possibly with undefined for elisions).
          if (this.errorOccurred) {
-            // This check might be redundant if the error is thrown inside map
-            return []; // Return empty array or handle error state
-        }
+             return []; // Should not be reached if errors are thrown correctly
+         }
         return elements;
     }
 
@@ -1166,13 +1266,14 @@ class Interpreter {
     // --- Helper Methods ---
 
     isTruthy(value: any): boolean {
+        // Mimics JavaScript truthiness: false, 0, "", null, undefined, NaN are falsey.
         return !(!value || value === 0 || (typeof value === 'bigint' && value === 0n) || value === "" || value === null || value === undefined || Number.isNaN(value));
     }
 
     formatValueForOutput(value: any): string {
         if (value === undefined) return 'mchmcha';
         if (value === null) return 'farkha';
-        if (typeof value === 'string') return value;
+        if (typeof value === 'string') return value; // Keep strings as they are for output
         if (typeof value === 'number' || typeof value === 'boolean') return String(value);
         if (typeof value === 'function') {
              if (value instanceof DarijaScriptFunction) return `[Dala: ${value.name || 'anonymous'}]`;
@@ -1180,24 +1281,37 @@ class Interpreter {
         }
         if (typeof value === 'object') {
             if (Array.isArray(value)) {
-                 return `[${value.map(v => this.formatValueForOutput(v)).join(', ')}]`;
-            } else {
+                 // Recursively format array elements, handle circular references
                  try {
                      const cache = new Set();
-                     return JSON.stringify(value, (key, value) => {
-                         if (typeof value === 'object' && value !== null) {
-                             if (cache.has(value)) return '[Circular]';
-                             cache.add(value);
+                     return `[${value.map(v => {
+                         if (typeof v === 'object' && v !== null) {
+                             if (cache.has(v)) return '[Circular]';
+                             cache.add(v);
                          }
-                         if (typeof value === 'function') return '[Function]';
-                         return value;
-                     }, 2);
-                 } catch { return '[Object]'; }
+                         return this.formatValueForOutput(v);
+                     }).join(', ')}]`;
+                 } catch { return '[Array]'; } // Fallback
+            } else {
+                 // Basic object formatting, handle circular references
+                 try {
+                     const cache = new Set();
+                     // Use JSON.stringify for a structured view, replacing functions
+                     return JSON.stringify(value, (key, val) => {
+                         if (typeof val === 'object' && val !== null) {
+                             if (cache.has(val)) return '[Circular]';
+                             cache.add(val);
+                         }
+                         if (typeof val === 'function') return '[Function]';
+                          if (typeof val === 'bigint') return `${val}n`; // BigInt needs special handling
+                         return val;
+                     }, 2); // Indent for readability
+                 } catch { return '[Object]'; } // Fallback for unstringifiable objects
             }
         }
         if (typeof value === 'symbol') return String(value);
-        if (typeof value === 'bigint') return `${value}n`;
-        return typeof value;
+        if (typeof value === 'bigint') return `${value}n`; // Format BigInts
+        return typeof value; // Fallback for unknown types
     }
 
     mapDarijaMethodToJs(darijaMethod: string): string | null {
@@ -1206,9 +1320,10 @@ class Interpreter {
              'zid': 'push', '7yed': 'pop', '7yedmnlwla': 'shift', 'zidfllwla': 'unshift',
              'dwr': 'map', 'n9i': 'filter', 'lfech': 'forEach', 'l9a': 'find', 'lmmaj': 'reduce',
              '3am': 'getFullYear', 'chhr': 'getMonth', 'nhar': 'getDate'
-             // Static methods like mfatih/qiyam are handled differently
+             // Static methods like mfatih/qiyam are handled differently (in callExpression)
+             // Properties like 'twil' handled in memberExpression
         };
-        return map[darijaMethod] || darijaMethod; // Return original if no mapping found
+        return map[darijaMethod] || null; // Return JS name or null if no mapping
     }
 }
 
@@ -1225,37 +1340,42 @@ export function interpret(code: string): { output: string[], error?: string } {
         console.error("Tokenizer Error:", tokenizerError.value);
         return { output: [], error: `Ghalat f Tokenizer: ${tokenizerError.value}` };
     }
-    // console.log("Tokens:", tokens);
+    // console.log("Tokens:", tokens); // Debugging
 
     // 2. Parse
-    const ast = parseCode(tokens);
+    const ast = parseCode(tokens); // Use imported parse function
     if (ast.error) {
          console.error("Parser Error:", ast.error);
          return { output: [], error: `Ghalat f Parser: ${ast.error}` };
     }
-    // console.log("AST:", JSON.stringify(ast, null, 2));
+    // console.log("AST:", JSON.stringify(ast, null, 2)); // Debugging
 
     // 3. Interpret
     interpreter = new Interpreter(ast);
     interpreter.interpret(); // Start interpretation
 
+    // Check if interpretation itself set the error flag
     if (interpreter.errorOccurred) {
+      // The error message should already be in the output array
       const lastOutput = interpreter.output[interpreter.output.length - 1] || "Runtime ghalat.";
-      const errorMessage = lastOutput.startsWith('Ghalat:') ? lastOutput : `Ghalat: ${lastOutput}`;
-      return { output: interpreter.output, error: errorMessage };
+      // Ensure the returned error message starts with "Ghalat:"
+      const errorMessage = lastOutput.startsWith('Ghalat:') ? lastOutput.substring(7).trim() : lastOutput;
+      return { output: interpreter.output, error: `Ghalat: ${errorMessage}` };
     }
 
+    // Interpretation finished without errors reported by the interpreter itself
     return { output: interpreter.output };
 
   } catch (e: any) {
+    // Catch unexpected system errors during tokenization, parsing, or interpretation
     console.error("Interpreter System Error:", e);
-    const errorMessage = (e && typeof e.message === 'string') ? e.message : 'Erreur inconnue lors de l\'interprétation.';
+    const errorMessage = (e && typeof e.message === 'string') ? e.message : 'Erreur système inconnue.';
      const output = interpreter ? interpreter.output : [];
-     if (interpreter && !interpreter.errorOccurred) {
-        output.push(`Ghalat System: ${errorMessage}`);
-     } else if (!interpreter) {
+     // Add system error message to output if it wasn't already added by interpreter
+     if (!output.some(line => line.includes(errorMessage))) {
          output.push(`Ghalat System: ${errorMessage}`);
      }
+    // Ensure the returned error reflects the system error
     return { output: output, error: `Ghalat System: ${errorMessage}` };
   }
 }
