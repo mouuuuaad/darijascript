@@ -7,11 +7,12 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { MessageSquare, Loader } from 'lucide-react'; // Add Loader
+import { MessageSquare, Loader, Shield } from 'lucide-react'; // Add Loader & Shield icon
 import { useToast } from '@/hooks/use-toast';
 import { firestore } from '@/lib/firebase/client'; // Import Firestore instance
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'; // Import Firestore functions
 import type { ToastProps } from '@/components/ui/toast'; // Import ToastProps type
+import Link from 'next/link'; // Import Link for navigation
 
 gsap.registerPlugin(ScrollTrigger); // Register ScrollTrigger
 
@@ -166,21 +167,35 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
              </div>
            </div>
 
-           <Button
-             onClick={handleEnterClick}
-             disabled={isSubmitting} // Disable button while submitting
-             className="bg-button-primary-gradient text-primary-foreground text-lg px-8 py-3 rounded-lg shadow-lg hover:opacity-90 transition-all duration-300 hover:shadow-primary/40 transform hover:-translate-y-1 focus:ring-4 focus:ring-primary/50"
-             size="lg"
-           >
-             {isSubmitting ? (
-                <>
-                    <Loader className="mr-2 h-5 w-5 animate-spin" />
-                    Kantssenaw... {/* Loading text */}
-                </>
-             ) : (
-                "Yallah, Dkhel l IDE!"
-             )}
-           </Button>
+           <div className="flex flex-col items-center space-y-4"> {/* Wrapper for buttons */}
+               <Button
+                 onClick={handleEnterClick}
+                 disabled={isSubmitting} // Disable button while submitting
+                 className="bg-button-primary-gradient text-primary-foreground text-lg px-8 py-3 rounded-lg shadow-lg hover:opacity-90 transition-all duration-300 hover:shadow-primary/40 transform hover:-translate-y-1 focus:ring-4 focus:ring-primary/50"
+                 size="lg"
+               >
+                 {isSubmitting ? (
+                    <>
+                        <Loader className="mr-2 h-5 w-5 animate-spin" />
+                        Kantssenaw... {/* Loading text */}
+                    </>
+                 ) : (
+                    "Yallah, Dkhel l IDE!"
+                 )}
+               </Button>
+
+                {/* New Admin Link Button */}
+                <Link href="/admin" passHref legacyBehavior>
+                  <Button
+                    variant="link"
+                    className="text-muted-foreground hover:text-primary transition-colors text-xs"
+                    size="sm"
+                  >
+                     <Shield size={14} className="mr-1" /> Admin Login
+                  </Button>
+                </Link>
+           </div>
+
            <p className="mt-10 text-xs text-muted-foreground/70">
               Made with ❤️ by <a href="https://github.com/MOUAADIDO" target="_blank" rel="noopener noreferrer" className="font-semibold text-secondary hover:text-primary transition-colors">MOUAAD IDOUFKIR</a> - Passionate Fullstack Developer
            </p>
