@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,39 +6,46 @@
 
 @layer base {
   :root {
-    /* Creative Bright Colors - Using user-provided anchors */
-    /* Background: #020013 (Dark Blue/Purple) -> hsl(244, 92%, 4%) */
-    /* Primary: #3BACFF (Bright Blue) -> hsl(207, 100%, 62%) */
-    /* Accent/Dual: #50E3C2 (Turquoise/Mint) -> hsl(167, 74%, 60%) */
+    /* Creative Bright Colors - User Provided Anchors */
+    /* Background: #020013 -> hsl(244, 92%, 4%) */
+    /* Primary: #3BACFF -> hsl(207, 100%, 62%) */
+    /* Accent/Dual: #50E3C2 -> hsl(167, 74%, 60%) */
     /* Button Grad Start: #4CB7FF -> hsl(203, 100%, 65%) */
     /* Button Grad End: #3CACFF -> hsl(207, 100%, 62%) */
-    /* Dual Button: #67F2D3 (Lighter Turquoise) -> hsl(167, 84%, 67%) */
-    /* Background: #020013 */
-    /* Primary: #3BACFF */
-    /* Accent/Dual: #50E3C2 */
-    /* Button Grad Start: #4CB7FF */
-    /* Button Grad End: #3CACFF */
-    /* Dual Button: #67F2D3 */
+    /* Dual Button: #67F2D3 -> hsl(167, 84%, 67%) */
 
     --background: 244 92% 4%; /* #020013 */
-    --foreground: 210 40% 98%; /* Very light gray/blue for high contrast */
-    --card: 244 50% 10%; /* Slightly lighter dark blue/purple */
+    --foreground: 210 40% 98%; /* Keep high contrast foreground */
+
+    --card: 244 70% 8%; /* Slightly lighter dark blue/purple */
     --card-foreground: 210 40% 98%;
-    --popover: 244 60% 8%; /* Darker popover */
+
+    --popover: 244 80% 6%; /* Darker popover */
     --popover-foreground: 210 40% 98%;
+
     --primary: 207 100% 62%; /* #3BACFF */
-    --primary-foreground: 244 92% 6%; /* Dark background for text on primary */
+    --primary-foreground: 244 92% 6%; /* Dark bg for text on primary */
+
     --secondary: 167 74% 60%; /* #50E3C2 - Using Accent as Secondary */
-    --secondary-foreground: 244 92% 4%; /* Dark background for text on secondary */
+    --secondary-foreground: 244 92% 4%; /* Dark bg for text on secondary */
+
     --muted: 244 40% 15%; /* Darker muted blue/purple */
-    --muted-foreground: 210 20% 75%; /* Lighter gray text */
+    --muted-foreground: 210 20% 70%; /* Slightly darker muted text */
+
     --accent: 167 84% 67%; /* #67F2D3 - Using Dual Button as Accent */
-    --accent-foreground: 244 92% 4%; /* Dark background for text on accent */
-    --destructive: 0 84% 60%; /* Vibrant red */
+    --accent-foreground: 244 92% 4%; /* Dark bg for text on accent */
+
+    --destructive: 0 84% 60%; /* Keep vibrant red */
     --destructive-foreground: 0 0% 100%; /* White */
-    --border: 244 30% 20%; /* Subtle border */
+
+    --border: 244 30% 25%; /* Slightly lighter border for better visibility */
     --input: 244 40% 18%; /* Slightly lighter input background */
     --ring: 207 100% 70%; /* Brighter primary for ring */
+
+    /* Button Specific Variables */
+    --button-grad-start: 203 100% 65%; /* #4CB7FF */
+    --button-grad-end: 207 100% 62%; /* #3CACFF */
+    --button-dual: 167 84% 67%; /* #67F2D3 */
 
     /* Charts - derived from palette */
     --chart-1: 207 90% 55%; /* Primary variant */
@@ -46,167 +54,113 @@
     --chart-4: 35 90% 60%; /* Contrasting Orange/Gold */
     --chart-5: 210 30% 80%; /* Lighter Foreground variant */
 
-    /* Sidebar Theme Variables */
-    --sidebar-background: 244 92% 6%; /* Slightly lighter than main background */
-    --sidebar-foreground: 210 40% 85%; /* Slightly darker than main foreground */
-    --sidebar-primary: 207 100% 62%;
-    --sidebar-primary-foreground: 244 92% 4%;
-    --sidebar-accent: 207 20% 20%; /* Subtle accent on sidebar */
-    --sidebar-accent-foreground: 207 100% 85%;
-    --sidebar-border: 244 30% 20%;
-    --sidebar-ring: 207 90% 60%;
+    /* Sidebar Theme Variables (Slightly different bg/fg for distinction) */
+    --sidebar-background: 244 85% 5%; /* Slightly different dark shade */
+    --sidebar-foreground: 210 40% 90%; /* Slightly less bright foreground */
+    --sidebar-primary: hsl(var(--primary)); /* Use main primary */
+    --sidebar-primary-foreground: hsl(var(--primary-foreground));
+    --sidebar-accent: 207 30% 15%; /* Subtle accent on sidebar */
+    --sidebar-accent-foreground: hsl(var(--primary)); /* Use primary for accented text */
+    --sidebar-border: hsl(var(--border));
+    --sidebar-ring: hsl(var(--ring));
 
     /* Docs code block */
-    --docs-code-bg: 244 70% 12%;
+    --docs-code-bg: 244 70% 12%; /* Darker code block bg */
     --docs-code-border: 244 30% 20%;
+
+     /* Output panel specific */
+    --output-success-text: hsl(var(--secondary)); /* Use secondary color for success */
+
+    --radius: 0.5rem; /* Default border radius */
   }
 
-  .dark {
-    /* Darker theme modifications if needed - for now, keeping it consistent */
-    --background: 244 92% 4%;
-    --foreground: 210 40% 98%;
-    --card: 244 50% 10%;
-    --card-foreground: 210 40% 98%;
-    --popover: 244 60% 8%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 207 100% 62%;
-    --primary-foreground: 244 92% 6%;
-    --secondary: 167 74% 60%;
-    --secondary-foreground: 244 92% 4%;
-    --muted: 244 40% 15%;
-    --muted-foreground: 210 20% 75%;
-    --accent: 167 84% 67%;
-    --accent-foreground: 244 92% 4%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 244 30% 20%;
-    --input: 244 40% 18%;
-    --ring: 207 100% 70%;
-    --output-success-text: hsl(167 80% 80%);
-  }
-
-  /* Creative Bright Colors - Toast Styles */
-  .toaster {
-    --toast-background: hsl(var(--background));
-    --toast-foreground: hsl(var(--foreground));
-    --toast-border: hsl(var(--border));
-    --toast-radius: 0.5rem;
-    --output-success-text: hsl(167 80% 80%);
-  }
-
-
-  /* Apply the dark theme variables directly as there's only one theme now */
+  /* No need for .dark selector if only one theme */
+  /* Apply the theme variables directly */
 
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-  }
-
-  .bg-card {
-    background-color: hsl(var(--card));
-  }
-
-  .text-card-foreground {
-    color: hsl(var(--card-foreground));
-  }
-
-  .bg-popover {
-    background-color: hsl(var(--popover));
-  }
-
-  .text-popover-foreground {
-    color: hsl(var(--popover-foreground));
-  }
-
-  .bg-primary {
-    background-color: hsl(var(--primary));
-  }
-
-  .text-primary {
-    color: hsl(var(--primary));
-  }
-
-  .text-primary-foreground {
-    color: hsl(var(--primary-foreground));
-  }
-
-  .bg-secondary {
-    background-color: hsl(var(--secondary));
-  }
-
-  .text-secondary-foreground {
-    color: hsl(var(--secondary-foreground));
-  }
-
-  .bg-muted {
-    background-color: hsl(var(--muted));
-  }
-
-  .text-muted-foreground {
-    color: hsl(var(--muted-foreground));
-  }
-
-  .bg-accent {
-    background-color: hsl(var(--accent));
-  }
-
-  .text-accent-foreground {
-    color: hsl(var(--accent-foreground));
-  }
-
-  .bg-destructive {
-    background-color: hsl(var(--destructive));
-  }
-
-  .text-destructive-foreground {
-    color: hsl(var(--destructive-foreground));
-  }
-
-  .bg-border {
-    background-color: hsl(var(--border));
-  }
-
-  .border-border {
-    border-color: hsl(var(--border));
-  }
-
-  .bg-input {
-    background-color: hsl(var(--input));
-  }
-
-  .ring-ring {
-    --tw-ring-color: hsl(var(--ring));
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1,"calt" 1; /* Enable common ligatures */
   }
 }
 
 @layer components {
-  /* Reusable toast styles */
-  .toaster {
-    @apply max-w-[400px] w-full bg-card border border-border rounded-md shadow-lg p-4 text-foreground;
+  /* Tailwind utility classes can be used directly for these, but defining components can be useful */
+  /* Example: Define button gradient classes if not using Tailwind variants directly */
+  .bg-button-primary-gradient {
+      background-image: linear-gradient(to right, hsl(var(--button-grad-start)), hsl(var(--button-grad-end)));
+  }
+   .bg-button-dual {
+      background-color: hsl(var(--button-dual));
   }
 
-  .toast-title {
-    @apply text-lg font-semibold;
-  }
+  /* Toast Customization */
+   .toast {
+      @apply rounded-lg border shadow-lg;
+      /* Base toast styles */
+    }
+   .toast-title {
+      @apply font-semibold;
+    }
+   .toast-description {
+      @apply text-sm opacity-90;
+    }
+    /* Specific toast types */
+   .toast-success {
+      @apply bg-secondary/10 border-secondary/50 text-secondary-foreground; /* Use secondary/accent for success */
+    }
+   .toast-error {
+      @apply bg-destructive/10 border-destructive/50 text-destructive; /* Use destructive for error */
+    }
+   .toast-info {
+      @apply bg-primary/10 border-primary/50 text-primary; /* Use primary for info */
+    }
+   .toast-autosave {
+      @apply bg-muted/50 border-border text-muted-foreground;
+    }
 
-  .toast-description {
-    @apply text-sm mt-1;
-  }
 
+  /* Documentation Styling (Tailwind Docs Inspiration) */
   .docs-container {
-    @apply h-full overflow-y-auto;
+    @apply h-full overflow-y-auto bg-gradient-to-br from-background to-[hsl(244,80%,6%)] p-6; /* Gradient background */
   }
 
   .docs-intro {
-    @apply mb-6 text-muted-foreground;
+    @apply mb-8 border-b border-border/30 pb-4;
   }
 
   .docs-intro h2 {
-    @apply text-3xl font-bold tracking-tight mb-2 text-foreground;
+    @apply text-3xl font-bold tracking-tight text-foreground mb-2; /* Match Tailwind Docs title */
+  }
+  .docs-intro p {
+     @apply text-muted-foreground text-base;
   }
 
+  .accordion-root {
+    @apply space-y-1; /* Space between categories */
+  }
+
+  .accordion-item {
+     @apply border-b border-border/20; /* Subtle separator */
+  }
+
+  .accordion-trigger {
+    @apply flex w-full items-center justify-between py-4 text-lg font-semibold text-foreground/90 hover:text-primary transition-colors [&[data-state=open]>svg]:rotate-180;
+     /* Larger, bolder trigger */
+  }
+   .accordion-trigger > div { @apply flex items-center gap-3; } /* Align icon and text */
+   .accordion-trigger svg:last-child { @apply h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200; } /* Chevron styling */
+
+
+  .accordion-content {
+    @apply overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down;
+  }
+   .accordion-content > div {
+      @apply pb-4 pt-2 pl-4 space-y-6; /* Indent content, add spacing */
+   }
+
   .doc-entry {
-    @apply mb-4 last:mb-0 border rounded-lg p-4 bg-muted/10 border-border/30 shadow-sm;
+    @apply relative rounded-lg border border-border/30 bg-card/50 p-4 shadow-sm transition-shadow hover:shadow-md;
+     /* Card-like entry with hover effect */
   }
 
   .doc-entry-header {
@@ -214,30 +168,43 @@
   }
 
   .doc-entry-darija {
-    @apply text-lg font-semibold text-primary;
+    @apply text-lg font-medium text-primary; /* Use primary color */
   }
 
   .doc-entry-english {
-    @apply font-mono text-xs text-muted-foreground tracking-wider uppercase;
+    @apply font-mono text-xs text-muted-foreground tracking-wider uppercase bg-muted/30 px-1.5 py-0.5 rounded; /* Badge-like styling */
   }
 
   .doc-entry-description {
-    @apply text-sm text-muted-foreground;
+    @apply text-sm text-foreground/80 mb-2; /* Slightly lighter text */
   }
 
   .doc-entry-usage-notes {
-    @apply text-xs font-mono text-muted-foreground mt-2 italic;
+    @apply text-xs font-mono text-muted-foreground mt-2 italic border-l-2 border-secondary pl-2; /* Note styling */
   }
 
   .doc-entry-example {
     @apply mt-3;
   }
+   .code-block { /* Style specifically for docs examples */
+       @apply border border-border/20 shadow-inner;
+   }
+
+
   .creator-credit {
-      @apply mt-8 text-center text-xs text-muted-foreground;
+      @apply mt-10 pt-4 text-center text-xs text-muted-foreground border-t border-border/20;
   }
 
   .creator-name {
-      @apply font-bold text-primary;
+      @apply font-bold text-primary hover:text-secondary transition-colors; /* Make name interactive */
   }
 }
-/* Existing code from globals.css */
+
+/* GSAP related utility class (optional) */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}
