@@ -10,6 +10,7 @@ export default {
   theme: {
   	extend: {
   		colors: {
+            // Updated based on new CSS variables in globals.css
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
@@ -40,6 +41,11 @@ export default {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'
   			},
+             // Add button gradient colors if needed directly in tailwind (though CSS vars are preferred)
+             'button-grad-start': 'hsl(var(--button-grad-start))',
+             'button-grad-end': 'hsl(var(--button-grad-end))',
+             'button-dual': 'hsl(var(--button-dual))',
+
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
@@ -62,10 +68,14 @@ export default {
   			}
   		},
   		borderRadius: {
-  			lg: 'var(--radius)',
+  			lg: 'var(--radius)', // Uses the radius from CSS variables
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
   		},
+      backgroundImage: { // Define gradients for buttons
+        'button-primary-gradient': 'linear-gradient(to right, hsl(var(--button-grad-start)), hsl(var(--button-grad-end)))',
+        'button-dual-gradient': 'linear-gradient(to right, hsl(var(--secondary)), hsl(var(--accent)))', // Example using secondary/accent
+      },
   		keyframes: {
   			'accordion-down': {
   				from: {
@@ -82,11 +92,16 @@ export default {
   				to: {
   					height: '0'
   				}
-  			}
+  			},
+             'rotate-glow': { // Add keyframe from globals.css if needed elsewhere
+                 '0%': { transform: 'rotate(-12deg) scale(1)' },
+                 '100%': { transform: 'rotate(348deg) scale(1.05)' },
+             }
   		},
   		animation: {
-  			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-down': 'accordion-down 0.3s ease-out', // Slightly slower
+  			'accordion-up': 'accordion-up 0.3s ease-out',
+             'rotate-glow': 'rotate-glow 15s linear infinite', // Add animation
   		}
   	}
   },

@@ -18,6 +18,9 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+         // Add a gradient variant if needed, or apply gradient classes directly
+         gradient: "bg-button-primary-gradient text-primary-foreground hover:opacity-90", // Example using gradient class
+         dual: "bg-button-dual text-accent-foreground hover:opacity-90", // Example using dual color class
       },
       size: {
         default: "h-10 px-4 py-2",
