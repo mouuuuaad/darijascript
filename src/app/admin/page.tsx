@@ -17,17 +17,25 @@ import { AlertTriangle, LogIn, LogOut, LayoutDashboard, ShieldAlert } from 'luci
 
 interface Prayer {
   id: string;
-  text: string;
+  text: string | null; // Allow null text just in case
   submittedAt: Timestamp | null; // Firestore Timestamp
 }
 
-// Helper function to format Firestore Timestamp
+// Helper function to format Firestore Timestamp safely
 const formatTimestamp = (timestamp: Timestamp | null): string => {
-  if (!timestamp) return 'No date';
-  // Convert Firestore Timestamp to JavaScript Date object
-  const date = timestamp.toDate();
-  // Format the date as needed (e.g., 'YYYY-MM-DD HH:mm:ss')
-  return date.toLocaleString(); // Adjust formatting as desired
+  // Double check timestamp validity before calling .toDate()
+  if (timestamp && typeof timestamp.toDate === 'function') {
+    try {
+      const date = timestamp.toDate();
+      // Note: toLocaleString() can cause hydration mismatches if server/client locales differ.
+      // Consider using a consistent format like date-fns format(date, 'yyyy-MM-dd HH:mm:ss') if needed.
+      return date.toLocaleString();
+    } catch (e) {
+      console.error("Error converting timestamp:", e, timestamp);
+      return 'Invalid Date Format';
+    }
+  }
+  return 'No Date Provided';
 };
 
 const ALLOWED_ADMIN_EMAIL = "mouaadidoufkir2@gmail.com"; // Define the allowed admin email
@@ -104,7 +112,17 @@ export default function AdminPage() {
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const prayersData: Prayer[] = [];
         querySnapshot.forEach((doc) => {
-          prayersData.push({ id: doc.id, ...doc.data() } as Prayer);
+           // Defensive check: Ensure data exists and has expected fields before pushing
+           const data = doc.data();
+           if (data && (data.text !== undefined) && (data.submittedAt !== undefined)) {
+                // Add a default for text if it happens to be null/undefined
+                const prayerText = data.text ?? "No text submitted";
+                // Ensure submittedAt is a Timestamp or null
+                const submittedAt = data.submittedAt instanceof Timestamp ? data.submittedAt : null;
+                prayersData.push({ id: doc.id, text: prayerText, submittedAt: submittedAt });
+           } else {
+               console.warn("Skipping document with missing data:", doc.id, data);
+           }
         });
         setPrayers(prayersData);
         setLoadingPrayers(false); // Prayers loaded
@@ -217,11 +235,14 @@ export default function AdminPage() {
                                <TableCell className="text-right"><Skeleton className="h-4 w-24 ml-auto bg-muted/40" /></TableCell>
                              </TableRow>
                            ))
-                         ) : prayers.length > 0 ? (
+                           // Check if prayers is an array before mapping
+                         ) : Array.isArray(prayers) && prayers.length > 0 ? (
                            prayers.map((prayer) => (
                              <TableRow key={prayer.id} className="hover:bg-muted/20 transition-colors">
-                               <TableCell className="font-medium py-3">{prayer.text}</TableCell>
+                               {/* Add default value for prayer text if it's null/undefined */}
+                               <TableCell className="font-medium py-3">{prayer.text ?? 'N/A'}</TableCell>
                                <TableCell className="text-right text-muted-foreground text-xs py-3">
+                                  {/* Ensure submittedAt is valid before formatting */}
                                   {formatTimestamp(prayer.submittedAt)}
                                </TableCell>
                              </TableRow>
@@ -234,7 +255,8 @@ export default function AdminPage() {
                            </TableRow>
                          )}
                        </TableBody>
-                        <TableCaption className="py-4">{loadingPrayers ? "Loading prayers..." : `Total Prayers: ${prayers.length}`}</TableCaption>
+                        {/* Check if prayers is an array before accessing length */}
+                        <TableCaption className="py-4">{loadingPrayers ? "Loading prayers..." : `Total Prayers: ${Array.isArray(prayers) ? prayers.length : 0}`}</TableCaption>
                     </Table>
                  </ScrollArea>
             </CardContent>
@@ -244,3 +266,5 @@ export default function AdminPage() {
     // </AuthGuard>
   );
 }
+
+    
