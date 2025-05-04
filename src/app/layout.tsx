@@ -1,8 +1,12 @@
+
 import type {Metadata} from 'next';
 import {Geist, Geist_Mono} from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
+import { AuthProvider } from '@/contexts/auth-context'; // Import AuthProvider
+import { QueryClientProviderWrapper } from '@/contexts/query-client-provider'; // Import Query Client Wrapper
+
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -31,8 +35,12 @@ export default function RootLayout({
       {/* Keep antialiased, font variables applied via html tag and globals.css */}
       {/* Add suppressHydrationWarning to body as well */}
       <body className="antialiased" suppressHydrationWarning>
-        {children}
-        <Toaster />
+         <QueryClientProviderWrapper>
+             <AuthProvider> {/* Wrap children with AuthProvider */}
+                 {children}
+                 <Toaster />
+             </AuthProvider>
+         </QueryClientProviderWrapper>
       </body>
     </html>
   );

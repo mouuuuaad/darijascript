@@ -7,8 +7,10 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { MessageSquare } from 'lucide-react'; // Example icon
+import { MessageSquare, Loader } from 'lucide-react'; // Add Loader
 import { useToast } from '@/hooks/use-toast';
+import { firestore } from '@/lib/firebase/client'; // Import Firestore instance
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore'; // Import Firestore functions
 
 gsap.registerPlugin(ScrollTrigger); // Register ScrollTrigger
 
@@ -22,6 +24,7 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
   const contentRef = useRef<HTMLDivElement>(null);
   const prayerInputRef = useRef<HTMLInputElement>(null);
   const [prayer, setPrayer] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false); // Add submitting state
   const { toast } = useToast();
 
   useEffect(() => {
@@ -55,30 +58,54 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
     };
   }, []);
 
-  const handleEnterClick = () => {
-    // Send prayer (optional: can add API call here)
+  const handleEnterClick = async () => {
+    if (isSubmitting) return; // Prevent multiple submissions
+    setIsSubmitting(true); // Set submitting state
+
+    let toastMessage = {
+       title: "شكراً!",
+       description: "دعاءك وصل. الله يقبل.",
+       className: "toast-success"
+    };
+
+    // Save prayer to Firestore if it's not empty
     if (prayer.trim()) {
-        console.log("Prayer submitted:", prayer);
-        toast({
-            title: "شكراً!",
-            description: `دعاءك وصل: "${prayer}". الله يقبل.`,
-             className: "toast-success" // Example custom class
+      try {
+        const prayersCollection = collection(firestore, 'prayers');
+        await addDoc(prayersCollection, {
+          text: prayer.trim(),
+          submittedAt: serverTimestamp(), // Use server timestamp
         });
+         toastMessage.description = `دعاءك وصل: "${prayer}". الله يقبل.`;
+      } catch (error) {
+        console.error("Error adding prayer to Firestore:", error);
+         toastMessage = {
+             title: "Ghalat!",
+             description: "وقع مشكل ملي كنا نسجلو الدعاء ديالك. حاول مرة أخرى.",
+             variant: "destructive",
+             className: "toast-error"
+         };
+      }
     } else {
-         toast({
-            title: "دعاء؟",
-            description: "نسيتي مكتبتيش دعاء؟ ماشي مشكل، دخل.",
-             className: "toast-info" // Example custom class
-        });
+       toastMessage = {
+          title: "دعاء؟",
+          description: "نسيتي مكتبتيش دعاء؟ ماشي مشكل، دخل.",
+           className: "toast-info"
+      };
     }
 
+    // Show toast regardless of submission result
+    toast(toastMessage);
 
     // Fade out animation before closing
     gsap.to(overlayRef.current, {
       opacity: 0,
       duration: 0.5,
       ease: 'power2.inOut',
-      onComplete: onClose, // Call onClose prop after animation finishes
+      onComplete: () => {
+        setIsSubmitting(false); // Reset submitting state
+        onClose(); // Call onClose prop after animation finishes
+      },
     });
   };
 
@@ -114,6 +141,7 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
                    placeholder="Lah ysehel 3lik khoya Moad..."
                    value={prayer}
                    onChange={(e) => setPrayer(e.target.value)}
+                   disabled={isSubmitting} // Disable input while submitting
                    className="pl-10 bg-input border-border focus:ring-primary focus:border-primary"
                  />
              </div>
@@ -121,10 +149,15 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
 
            <Button
              onClick={handleEnterClick}
+             disabled={isSubmitting} // Disable button while submitting
              className="bg-button-primary-gradient text-primary-foreground text-lg px-8 py-3 rounded-lg shadow-lg hover:opacity-90 transition-all duration-300 hover:shadow-primary/40 transform hover:-translate-y-1 focus:ring-4 focus:ring-primary/50"
              size="lg"
            >
-             Yallah, Dkhel l IDE!
+             {isSubmitting ? (
+                <Loader className="mr-2 h-5 w-5 animate-spin" />
+             ) : (
+                "Yallah, Dkhel l IDE!"
+             )}
            </Button>
            <p className="mt-10 text-xs text-muted-foreground/70">
               Made with ❤️ by <a href="https://github.com/MOUAADIDO" target="_blank" rel="noopener noreferrer" className="font-semibold text-secondary hover:text-primary transition-colors">MOUAAD IDOUFKIR</a> - Passionate Fullstack Developer
