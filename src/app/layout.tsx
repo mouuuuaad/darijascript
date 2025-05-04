@@ -26,7 +26,8 @@ export default function RootLayout({
 }>) {
   return (
     // Apply font variables to the html tag for better global scope
-    <html lang="en" className={cn(geistSans.variable, geistMono.variable)}>
+    // Add suppressHydrationWarning to potentially resolve font/style hydration issues
+    <html lang="en" className={cn(geistSans.variable, geistMono.variable)} suppressHydrationWarning>
       {/* Keep antialiased, font set in CSS */}
       <body className="antialiased">
         {children}
