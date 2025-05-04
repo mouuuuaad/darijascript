@@ -1,7 +1,6 @@
 
-
 // Import the parse function and ASTNode interface
-import { ASTNode, parse as parseCode } from './parser';
+import { ASTNode, parse as parseCode } from './parser'; // Import parse function
 
 interface Token {
   type: string;
@@ -165,7 +164,6 @@ function tokenize(code: string): Token[] {
          const regex = new RegExp(`^${numIdent}(?![a-zA-Z0-9_])`);
          const match = code.substring(cursor).match(regex);
           if (match) {
-            const followingChar = code[cursor + numIdent.length];
              // Treat as identifier if followed by '.' or '(', likely a method/function call
              // Treat '7ala' and '3adi' as keywords
               if (numIdent === '7ala' || numIdent === '3adi') {
@@ -465,24 +463,26 @@ class Interpreter {
         for (const name in BUILTIN_FUNCTIONS) {
             const nativeFunc = BUILTIN_FUNCTIONS[name];
             this.globalEnv.declare(name, (...args: any[]) => {
+                // Special case for 'rmmi' (throw): don't wrap in try-catch here, let it throw directly
+                 if (name === 'rmmi') {
+                     return nativeFunc.apply(null, args); // Just call it, it will throw
+                 }
                 try {
-                     if (name === 'rmmi') {
-                         throw args[0];
-                     }
+                     // Handling for logging functions
                      if (['tbe3', 'ghlat', 'nbehh'].includes(name)) {
                          const formattedArgs = args.map(arg => this.formatValueForOutput(arg)).join(' ');
                          this.output.push(formattedArgs);
-                         // For Object.keys/values, call the native func directly
-                         if (['mfatih', 'qiyam'].includes(name)) {
-                              return nativeFunc.apply(Object, args); // Apply on Object
-                         }
-                         // If the target object (e.g., console) has the method, apply it there.
+                          // Call the actual console method
                          if (typeof console !== 'undefined' && name in console) {
-                           return (console as any)[name](...args);
+                            return (console as any)[name](...args);
                          }
-                         // Fallback: call the function globally (less likely for these specific ones)
+                         // Fallback if console isn't available (less likely in target env)
                          return nativeFunc.apply(null, args);
                      }
+                      // For Object.keys/values, call the native func directly
+                      if (['mfatih', 'qiyam'].includes(name)) {
+                          return nativeFunc.apply(Object, args); // Apply on Object
+                      }
                      // For Math, Date static methods, apply on null/global context
                      if (['t7t', 'fo9', 'dour', 'tsarraf', 'kbar', 'sghar', 'mnfi', 'rf3', 'jdr', 'daba'].includes(name)) {
                          return nativeFunc.apply(null, args);
@@ -496,12 +496,14 @@ class Interpreter {
                       if (['sta9', 'krr'].includes(name)) {
                          return nativeFunc.apply(null, args); // Or window/globalThis if needed
                      }
-                     // Default fallback (should ideally cover all cases above)
+                     // Default fallback (covers nadi, sowel, tsawal etc. if window exists)
                      return nativeFunc.apply(undefined, args);
                 } catch (error: any) {
                     // Append line/col info if possible
-                    const currentLocation = this.getCurrentLocationInfo();
+                    const currentLocation = this.getCurrentLocationInfo(); // Placeholder
+                    // Rethrow with location info, unless it's the special 'rmmi' case
                     throw new Error(`Ghalat f dlla "${name}"${currentLocation}: ${error.message}`);
+
                 }
             }, true);
         }
@@ -528,9 +530,10 @@ class Interpreter {
         try {
            return this.evaluate(node, env);
         } catch (error: any) {
-            if (this.errorOccurred) return;
+            if (this.errorOccurred) return; // Prevent multiple error reports
+             // Check if it's a control flow signal, not a runtime error
              if (error instanceof ReturnValue || error instanceof BreakSignal || error instanceof ContinueSignal) {
-                throw error; // These are control flow signals, not runtime errors
+                throw error;
              }
             this.errorOccurred = true;
             const errorNode = node; // Or potentially track a more specific node if possible
@@ -552,15 +555,11 @@ class Interpreter {
                 for (const stmt of node.body ?? []) {
                     lastVal = this.evaluate(stmt, env);
                     if (this.errorOccurred) return lastVal; // Propagate error object
-                    if (lastVal !== undefined && lastVal !== null && !(lastVal instanceof Object && Object.keys(lastVal).length === 0 && lastVal.error)) {
-                        // Optionally capture the value of the last expression statement if needed
-                        // Currently, only the side effects (like 'tbe3') are relevant from top-level statements.
+                    if (lastVal instanceof ReturnValue) {
+                         throw new Error("Ma ymknch tdir 'rj3' barra mn dala.");
                     }
                 }
-                // The final result of a program is typically undefined unless the last statement was a return (not valid at top level)
-                // or an expression statement whose value we want to return (like in a REPL).
-                // For now, return undefined for Program execution.
-                return undefined;
+                return lastVal;
 
 
             case 'ExpressionStatement':
@@ -633,6 +632,11 @@ class Interpreter {
         for (const statement of node.body ?? []) {
             lastResult = this.evaluate(statement, blockEnv);
             if (this.errorOccurred) return lastResult;
+             // Important: If a block statement evaluates to a ReturnValue (from a nested block/function),
+             // it should immediately stop and propagate the ReturnValue up.
+             if (lastResult instanceof ReturnValue) {
+                 throw lastResult; // Propagate return upwards
+             }
         }
         // A block statement itself evaluates to the value of the last statement executed,
         // but often its return value is ignored unless it's the body of a function without explicit return.
@@ -857,6 +861,7 @@ class Interpreter {
                  const jsCallbackWrapper = (...callbackArgs: any[]) => {
                     const callbackEnv = darijaCallback.closure.extend();
                     // Bind arguments (value, index, array) to Darija function parameters
+                    if (!darijaCallback.params || !Array.isArray(darijaCallback.params)) return;
                     darijaCallback.params.forEach((param, index) => {
                          if (param.name) {
                             callbackEnv.declare(param.name, callbackArgs[index], false);
@@ -919,6 +924,7 @@ class Interpreter {
           // Handle DarijaScript function calls
          if (funcToCall instanceof DarijaScriptFunction) {
              const callEnv = funcToCall.closure.extend();
+             if (!funcToCall.params) funcToCall.params = []; // Ensure params is an array
              if (funcToCall.params.length !== args.length) {
                   throw new Error(`Dala "${funcToCall.name || 'anonymous'}" katsnna ${funcToCall.params.length} arguments, 3titih ${args.length}.`);
              }
@@ -941,7 +947,7 @@ class Interpreter {
           } else {
                // Native JS function calls (including built-ins and methods)
                try {
-                    // The global function wrappers handle output capture and errors
+                    // The global function wrappers handle output capture and errors (except rmmi)
                     // For methods, we call directly using apply
                     return funcToCall.apply(thisContext, args);
                } catch (error: any) {
@@ -1080,7 +1086,9 @@ class Interpreter {
                 const catchEnv = env.extend();
                  if (node.handler.param && node.handler.param.name) {
                     // Declare the error object in the catch block's scope
-                    catchEnv.declare(node.handler.param.name, error.message || error, false); // Store message or error itself
+                    // Capture the error message or the error object itself
+                    const errorValue = (error instanceof Error) ? error.message : error;
+                    catchEnv.declare(node.handler.param.name, errorValue, false);
                  }
                   try {
                     // Execute the catch block
@@ -1165,15 +1173,16 @@ class Interpreter {
          try {
              // Access the property using the determined name (could be number, string, symbol, or Darija name)
             const value = obj[propName];
-            // If the retrieved value is a native JS function (but not one we manually bound above),
-            // bind it to the object instance here.
-            if (typeof value === 'function' && !(value instanceof DarijaScriptFunction)) {
-                // Check if it's a method of this object instance or its prototype chain
-                if (propName in obj) { // Use 'in' to check prototype chain as well
-                    return value.bind(obj);
-                }
-            }
-            return value; // Return the raw value (primitive, object, DarijaScriptFunction, undefined, etc.)
+
+             // If the retrieved value is a native JS function (but not one we manually bound above),
+             // bind it to the object instance here.
+             if (typeof value === 'function' && !(value instanceof DarijaScriptFunction)) {
+                 // Check if it's a method of this object instance or its prototype chain
+                 if (propName in obj) { // Use 'in' to check prototype chain as well
+                     return value.bind(obj);
+                 }
+             }
+             return value; // Return the raw value (primitive, object, DarijaScriptFunction, undefined, etc.)
          } catch (error: any) {
              throw new Error(`Ghalat mli kan qra property "${String(propName)}" mn ${typeof obj}: ${error.message}`);
          }
@@ -1389,6 +1398,7 @@ class Interpreter {
 
 export function interpret(code: string): { output: string[], error?: string } {
   let interpreter: Interpreter | null = null;
+  let ast: ASTNode | null = null;
   try {
     // 1. Tokenize
     const tokens = tokenize(code);
@@ -1400,7 +1410,7 @@ export function interpret(code: string): { output: string[], error?: string } {
     // console.log("Tokens:", tokens); // Debugging
 
     // 2. Parse
-    const ast = parseCode(tokens); // Use imported parse function
+    ast = parseCode(tokens); // Use imported parse function
     if (ast.error) {
          console.error("Parser Error:", ast.error);
          return { output: [], error: `Ghalat f Parser: ${ast.error}` };
@@ -1430,10 +1440,12 @@ export function interpret(code: string): { output: string[], error?: string } {
      const output = interpreter ? interpreter.output : [];
      // Add system error message to output if it wasn't already added by interpreter
      if (!output.some(line => line.includes(errorMessage))) {
-         output.push(`Ghalat System: ${errorMessage}`);
+         const location = ast ? ` [Ln ${ast.line ?? '?'}, Col ${ast.column ?? '?'}]` : '';
+         output.push(`Ghalat System${location}: ${errorMessage}`);
      }
     // Ensure the returned error reflects the system error
     return { output: output, error: `Ghalat System: ${errorMessage}` };
   }
 }
+
 
