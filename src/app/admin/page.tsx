@@ -143,14 +143,16 @@ export default function AdminPage() {
         setLoadingPrayers(false); // Prayers loaded
          console.log("AdminPage onSnapshot: Prayer state updated. Loading finished.");
       }, (err) => {
+          // Handle errors from the snapshot listener
           console.error("AdminPage onSnapshot Error: Failed to fetch prayers:", err);
+          let errorMessage = "Failed to load prayers. Please check your Firestore connection and permissions.";
           // Check for permission denied errors specifically
           if ((err as any).code === 'permission-denied') {
-              setError("Failed to load prayers: Permission Denied. Please check your Firestore Security Rules. Ensure the authenticated admin user has read access to the 'prayers' collection.");
+               errorMessage = "Failed to load prayers: Permission Denied. Please check your Firestore Security Rules. Ensure the authenticated admin user has read access to the 'prayers' collection.";
+               // Log the tip internally, but set a user-friendly error message for the UI
                console.error("Firestore Security Rules Tip: Ensure your rules allow reads for the authenticated admin user, e.g., `allow read: if request.auth != null && request.auth.token.email == 'YOUR_ADMIN_EMAIL';`");
-          } else {
-              setError("Failed to load prayers. Please check your Firestore connection and permissions.");
           }
+          setError(errorMessage); // Set the error state to display in the UI
           setLoadingPrayers(false); // Stop loading even on error
       });
 
@@ -257,19 +259,22 @@ export default function AdminPage() {
           </div>
         </div>
 
-         {error && !error.startsWith("Access denied") && !error.includes("Permission Denied") && ( // Don't show access denied/permission error here again
-              <div className="mb-4 p-3 bg-destructive/10 border border-destructive/50 text-destructive rounded-md text-sm flex items-center gap-2">
-                  <AlertTriangle size={16}/> {error}
-              </div>
+        {/* Display errors related to fetching data, specifically permission denied */}
+         {error && (
+              error.includes("Permission Denied") ? (
+                  <div className="mb-4 p-3 bg-destructive/10 border border-destructive/50 text-destructive rounded-md text-sm">
+                      <p className="font-semibold flex items-center gap-2"><AlertTriangle size={16}/> Permission Denied</p>
+                      <p className="mt-1">Could not load prayers. Please check your Firestore Security Rules in the Firebase Console.</p>
+                      <p className="mt-1 text-xs">Ensure the rule for the 'prayers' collection allows read access for authenticated users with the email: <strong>{ALLOWED_ADMIN_EMAIL}</strong>.</p>
+                      <p className="mt-1 text-xs">Example rule snippet: <code>match /prayers/{'{prayerId}'} {'{'} allow read: if request.auth != null &amp;&amp; request.auth.token.email == '{ALLOWED_ADMIN_EMAIL}'; {'}'}</code></p>
+                  </div>
+              ) : (
+                  <div className="mb-4 p-3 bg-destructive/10 border border-destructive/50 text-destructive rounded-md text-sm flex items-center gap-2">
+                      <AlertTriangle size={16}/> {error}
+                  </div>
+              )
           )}
-           {error && error.includes("Permission Denied") && ( // Show specific permission error more prominently
-                <div className="mb-4 p-3 bg-destructive/10 border border-destructive/50 text-destructive rounded-md text-sm">
-                     <p className="font-semibold flex items-center gap-2"><AlertTriangle size={16}/> Permission Denied</p>
-                     <p className="mt-1">Could not load prayers. Please check your Firestore Security Rules in the Firebase Console.</p>
-                     <p className="mt-1 text-xs">Ensure the rule for the 'prayers' collection allows read access for authenticated users with the email: <strong>{ALLOWED_ADMIN_EMAIL}</strong>.</p>
-                     <p className="mt-1 text-xs">Example rule snippet: <code>match /prayers/{prayerId} {'{'} allow read: if request.auth != null && request.auth.token.email == '{ALLOWED_ADMIN_EMAIL}'; {'}'}</code></p>
-                 </div>
-            )}
+
 
         <Card className="bg-card/90 border-border/50 shadow-lg backdrop-blur-sm">
             <CardHeader>
@@ -324,3 +329,5 @@ export default function AdminPage() {
     // </AuthGuard>
   );
 }
+
+    
