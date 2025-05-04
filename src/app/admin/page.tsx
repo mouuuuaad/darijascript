@@ -150,7 +150,8 @@ export default function AdminPage() {
           if ((err as any).code === 'permission-denied') {
                errorMessage = "Failed to load prayers: Permission Denied. Please check your Firestore Security Rules. Ensure the authenticated admin user has read access to the 'prayers' collection.";
                // Log the tip internally, but set a user-friendly error message for the UI
-               console.error("Firestore Security Rules Tip: Ensure your rules allow reads for the authenticated admin user, e.g., `allow read: if request.auth != null && request.auth.token.email == 'YOUR_ADMIN_EMAIL';`");
+               // Use console.warn instead of console.error for tips
+               console.warn("Firestore Security Rules Tip: Ensure your rules allow reads for the authenticated admin user, e.g., `allow read: if request.auth != null && request.auth.token.email == 'YOUR_ADMIN_EMAIL';`");
           }
           setError(errorMessage); // Set the error state to display in the UI
           setLoadingPrayers(false); // Stop loading even on error
@@ -329,5 +330,3 @@ export default function AdminPage() {
     // </AuthGuard>
   );
 }
-
-    
