@@ -1,4 +1,5 @@
 
+
 // A simplified recursive descent parser for DarijaScript
 // Aims to generate an Abstract Syntax Tree (AST) representing the code structure.
 
@@ -14,7 +15,7 @@ interface Token {
 // --- AST Node Interface ---
 // Defines the structure of nodes in the Abstract Syntax Tree
 export interface ASTNode {
-  type: string; // Node type, e.g., 'Program', 'VariableDeclaration', 'BinaryExpression'
+  type: string; // Node type, e.g., 'Program', 'VariableDeclaration', 'BinaryExpression', 'ObjectExpression', 'Property'
   line: number;   // Line number corresponding to the start of the node/token
   column: number; // Column number corresponding to the start of the node/token
 
@@ -24,7 +25,7 @@ export interface ASTNode {
   declarations?: ASTNode[];// For VariableDeclaration (if parsing multiple vars at once)
   id?: ASTNode;            // Identifier node (for variables, functions, parameters)
   name?: string;           // Shortcut for Identifier's name
-  kind?: string;           // 'tabit' or 'bdl' for VariableDeclaration
+  kind?: string;           // 'tabit' or 'bdl' for VariableDeclaration, 'init' for Property (JS standard)
   initializer?: ASTNode;   // Initial value expression for VariableDeclarator
   left?: ASTNode;          // Left operand for Binary/Assignment/Logical Expressions
   right?: ASTNode;         // Right operand for Binary/Assignment/Logical Expressions
@@ -44,12 +45,17 @@ export interface ASTNode {
   finalizer?: ASTNode | null;// Finally BlockStatement for TryStatement (fakhr block) (can be null)
   param?: ASTNode | null;  // Error parameter Identifier for CatchClause (can be null)
   object?: ASTNode;        // Object being accessed in MemberExpression
-  property?: ASTNode;      // Property being accessed in MemberExpression
+  property?: ASTNode;      // Property being accessed in MemberExpression (for MemberExpression) or a Property node (for ObjectExpression)
   computed?: boolean;      // True if MemberExpression uses `[]`, false for `.`
   discriminant?: ASTNode;  // Expression being switched on in SwitchStatement
   cases?: ASTNode[];       // Array of SwitchCase nodes for SwitchStatement
-  value?: any;             // Literal value for NumericLiteral, StringLiteral, BooleanLiteral
+  value?: any;             // Literal value for NumericLiteral, StringLiteral, BooleanLiteral, or value node for Property
   elements?: (ASTNode | null)[]; // Elements in an ArrayExpression (can have empty slots)
+  properties?: ASTNode[];  // Properties in an ObjectExpression
+  key?: ASTNode;           // Key node (Identifier or Literal) for Property
+  method?: boolean;        // True if Property is a method definition (not yet supported)
+  shorthand?: boolean;     // True if Property uses shorthand (e.g., {x}) (not yet supported)
+
 
   // Special property for parser errors within the Program node
   error?: string;
@@ -84,7 +90,14 @@ class Parser {
           if (node) {
               body.push(node);
           } else if (!this.isAtEnd()) {
-              throw this.error(this.peek(), "Expression wella statement mam fahmouch.");
+              // If parsing declaration/statement returned null and we're not at the end,
+              // try parsing an expression statement just in case.
+              const exprStmt = this.parseExpressionStatement();
+              if(exprStmt && exprStmt.expression) {
+                  body.push(exprStmt);
+              } else {
+                   throw this.error(this.peek(), "Expression wella statement mam fahmouch.");
+              }
           }
       } catch (error: any) {
           const errorMessage = error.message || "Erreur d'analyse inconnue.";
@@ -148,9 +161,14 @@ class Parser {
     const startToken = this.peek();
     const expr = this.parseExpression();
     if (requireSemicolon) {
-        this.consumeValue('PUNCTUATION', ';', "Khass ';' f lekher dyal statement.");
+        // Semicolon is optional at the end of the program or before '}'
+        if (this.checkValue('PUNCTUATION', ';')) {
+            this.advance();
+        } else if (!this.isAtEnd() && !this.checkValue('PUNCTUATION', '}')) {
+            throw this.error(this.peek(), "Khass ';' wella '}' f lekher dyal statement.");
+        }
     } else {
-        this.matchValue('PUNCTUATION', ';'); // Optionally consume semicolon
+        this.matchValue('PUNCTUATION', ';'); // Optionally consume semicolon if present
     }
     return { type: 'ExpressionStatement', expression: expr, line: startToken.line, column: startToken.column };
   }
@@ -172,7 +190,12 @@ class Parser {
               column: nameToken.column
           });
       } while (this.matchValue('PUNCTUATION', ','));
-      this.consumeValue('PUNCTUATION', ';', "Khass ';' f lekher dyal declaration dyal variable.");
+      // Semicolon is optional at the end of the program or before '}'
+        if (this.checkValue('PUNCTUATION', ';')) {
+            this.advance();
+        } else if (!this.isAtEnd() && !this.checkValue('PUNCTUATION', '}')) {
+            throw this.error(this.peek(), "Khass ';' wella '}' f lekher dyal declaration dyal variable.");
+        }
       return { type: 'VariableDeclaration', kind, declarations, line: startToken.line, column: startToken.column };
   }
 
@@ -198,22 +221,45 @@ class Parser {
    }
 
   parseIfStatement(): ASTNode {
-    const startToken = this.previous(); // 'ila' or 'wa9ila' token
-    this.consumeValue('PUNCTUATION', '(', "Kan tsnna '(' ba3d 'ila'/'wa9ila'.");
+    const startToken = this.previous(); // 'ila' token
+    this.consumeValue('PUNCTUATION', '(', "Kan tsnna '(' ba3d 'ila'.");
     const test = this.parseExpression();
     this.consumeValue('PUNCTUATION', ')', "Kan tsnna ')' ba3d condition.");
     const consequent = this.parseStatement(); // Consequent can be single statement or block
 
     let alternate: ASTNode | undefined = undefined;
-    if (this.matchValue('KEYWORD', 'ella')) {
-      alternate = this.parseStatement();
-      // After an 'ella', we shouldn't have a 'wa9ila' immediately following
-      if (this.checkValue('KEYWORD', 'wa9ila')) {
-          throw this.error(this.peek(), "'wa9ila' ma ymknch tji mora 'ella'.");
-      }
-    } else if (this.matchValue('KEYWORD', 'wa9ila')) { // Handle 'else if' (wa9ila)
-        // Recursively parse the next 'if' statement started by 'wa9ila'
-        alternate = this.parseIfStatement();
+    if (this.matchValue('KEYWORD', 'ella')) { // Standard 'else'
+        // Check if 'wa9ila' follows 'ella' immediately, which is an error
+        if (this.checkValue('KEYWORD', 'wa9ila')) {
+            throw this.error(this.peek(), "'wa9ila' ma ymknch tji mora 'ella'.");
+        }
+        alternate = this.parseStatement();
+    } else if (this.matchValue('KEYWORD', 'wa9ila')) { // 'else if' construct
+        // 'wa9ila' must be followed by a condition (like 'ila')
+        const elseIfStartToken = this.previous();
+        // Recursively parse the next 'if' statement structure started by 'wa9ila'
+        this.consumeValue('PUNCTUATION', '(', "Kan tsnna '(' ba3d 'wa9ila'.");
+        const elseIfTest = this.parseExpression();
+        this.consumeValue('PUNCTUATION', ')', "Kan tsnna ')' ba3d condition dyal 'wa9ila'.");
+        const elseIfConsequent = this.parseStatement();
+
+        let elseIfAlternate: ASTNode | undefined = undefined;
+        if (this.matchValue('KEYWORD', 'ella')) {
+             if (this.checkValue('KEYWORD', 'wa9ila')) { throw this.error(this.peek(), "'wa9ila' ma ymknch tji mora 'ella'."); }
+             elseIfAlternate = this.parseStatement();
+        } else if (this.matchValue('KEYWORD', 'wa9ila')) { // Nested 'else if'
+             elseIfAlternate = this.parseIfStatement(); // Re-use parseIfStatement for the next 'wa9ila'
+        }
+
+        // Construct the 'else if' node as a nested IfStatement in the alternate position
+        alternate = {
+            type: 'IfStatement',
+            test: elseIfTest,
+            consequent: elseIfConsequent,
+            alternate: elseIfAlternate,
+            line: elseIfStartToken.line,
+            column: elseIfStartToken.column
+        };
     }
 
     return { type: 'IfStatement', test, consequent, alternate, line: startToken.line, column: startToken.column };
@@ -236,7 +282,12 @@ class Parser {
       this.consumeValue('PUNCTUATION', '(', "Kan tsnna '(' ba3d 'madamt'.");
       const test = this.parseExpression();
       this.consumeValue('PUNCTUATION', ')', "Kan tsnna ')' ba3d condition.");
-      this.consumeValue('PUNCTUATION', ';', "Khass ';' f lekher dyal do-while statement.");
+       // Semicolon is optional at the end of the program or before '}'
+        if (this.checkValue('PUNCTUATION', ';')) {
+            this.advance();
+        } else if (!this.isAtEnd() && !this.checkValue('PUNCTUATION', '}')) {
+            throw this.error(this.peek(), "Khass ';' wella '}' f lekher dyal do-while statement.");
+        }
       return { type: 'DoWhileStatement', body, test, line: startToken.line, column: startToken.column };
   }
 
@@ -321,10 +372,13 @@ class Parser {
       while (!this.checkValue('PUNCTUATION', '}') && !this.isAtEnd()) {
           let test: ASTNode | null = null;
           let caseStartToken: Token;
-          if (this.matchValue('KEYWORD', '7ala')) {
+          // Use checkValue instead of matchValue for 7ala and 3adi because they start with numbers
+          if (this.checkValue('KEYWORD', '7ala')) {
+              this.advance(); // Consume '7ala'
               caseStartToken = this.previous();
               test = this.parseExpression();
-          } else if (this.matchValue('KEYWORD', '3adi')) {
+          } else if (this.checkValue('KEYWORD', '3adi')) {
+              this.advance(); // Consume '3adi'
                caseStartToken = this.previous();
               test = null;
           } else {
@@ -346,20 +400,37 @@ class Parser {
   parseReturnStatement(): ASTNode {
      const startToken = this.previous();
      let argument: ASTNode | undefined = undefined;
-     if (!this.checkValue('PUNCTUATION', ';')) { argument = this.parseExpression(); }
-     this.consumeValue('PUNCTUATION', ';', "Khass ';' ba3d return statement.");
+     if (!this.checkValue('PUNCTUATION', ';') && !this.checkValue('PUNCTUATION','}')) {
+         argument = this.parseExpression();
+     }
+      // Semicolon is optional at the end of the program or before '}'
+        if (this.checkValue('PUNCTUATION', ';')) {
+            this.advance();
+        } else if (!this.isAtEnd() && !this.checkValue('PUNCTUATION', '}')) {
+            throw this.error(this.peek(), "Khass ';' wella '}' ba3d return statement.");
+        }
      return { type: 'ReturnStatement', argument, line: startToken.line, column: startToken.column };
    }
 
    parseBreakStatement(): ASTNode {
        const startToken = this.previous();
-       this.consumeValue('PUNCTUATION', ';', "Khass ';' ba3d wa9f."); // Make semicolon mandatory
+        // Semicolon is optional at the end of the program or before '}'
+        if (this.checkValue('PUNCTUATION', ';')) {
+            this.advance();
+        } else if (!this.isAtEnd() && !this.checkValue('PUNCTUATION', '}')) {
+            throw this.error(this.peek(), "Khass ';' wella '}' ba3d wa9f.");
+        }
        return { type: 'BreakStatement', line: startToken.line, column: startToken.column };
    }
 
    parseContinueStatement(): ASTNode {
         const startToken = this.previous();
-       this.consumeValue('PUNCTUATION', ';', "Khass ';' ba3d kamml."); // Make semicolon mandatory
+        // Semicolon is optional at the end of the program or before '}'
+        if (this.checkValue('PUNCTUATION', ';')) {
+            this.advance();
+        } else if (!this.isAtEnd() && !this.checkValue('PUNCTUATION', '}')) {
+            throw this.error(this.peek(), "Khass ';' wella '}' ba3d kamml.");
+        }
         return { type: 'ContinueStatement', line: startToken.line, column: startToken.column };
    }
 
@@ -459,27 +530,17 @@ class Parser {
      }
       if (this.matchValue('OPERATOR', '++', '--')) {
           const operator = this.previous().value;
-          const argument = this.parseUpdate();
+          // For prefix, the argument must be assignable (Identifier or MemberExpression)
+          // We parse the argument using parsePrimary or parseCall, but check its type here.
+          const argument = this.parseCall(); // parseCall handles MemberExpressions too
           if (argument.type !== 'Identifier' && argument.type !== 'MemberExpression') {
                throw this.error(startToken, `L'opérateur préfixé '${operator}' khass ykoun 9bel variable wla property.`);
           }
           return { type: 'UpdateExpression', operator, argument, prefix: true, line: startToken.line, column: startToken.column };
       }
-     return this.parseUpdate();
+     return this.parseCall(); // Postfix update is handled in parseCall's logic
    }
 
-   parseUpdate(): ASTNode {
-       const startToken = this.peek();
-       let expr = this.parseCall();
-       if (this.matchValue('OPERATOR', '++', '--')) {
-           const operator = this.previous().value;
-           if (expr.type !== 'Identifier' && expr.type !== 'MemberExpression') {
-               throw this.error(this.previous(), `L'opérateur postfixé '${operator}' khass yji ba3d variable wla property.`);
-           }
-           expr = { type: 'UpdateExpression', operator, argument: expr, prefix: false, line: startToken.line, column: startToken.column };
-       }
-       return expr;
-   }
 
    parseCall(): ASTNode {
        let expr = this.parsePrimary();
@@ -495,6 +556,14 @@ class Parser {
                const propertyExpr = this.parseExpression();
                this.consumeValue('PUNCTUATION', ']', "Kan tsnna ']' ba3d index expression.");
                expr = { type: 'MemberExpression', object: expr, property: propertyExpr, computed: true, line: expr.line, column: expr.column };
+           } else if (this.matchValue('OPERATOR', '++', '--')) { // Handle postfix update
+                const operator = this.previous().value;
+                if (expr.type !== 'Identifier' && expr.type !== 'MemberExpression') {
+                    throw this.error(this.previous(), `L'opérateur postfixé '${operator}' khass yji ba3d variable wla property.`);
+                }
+                expr = { type: 'UpdateExpression', operator, argument: expr, prefix: false, line: expr.line, column: expr.column };
+                // After a postfix operator, we usually don't expect further calls/member access immediately,
+                // but the loop structure allows it if syntactically possible (though semantically weird).
            } else {
                break;
            }
@@ -549,6 +618,10 @@ class Parser {
        if (this.matchValue('PUNCTUATION', '[')) {
            return this.parseArrayExpression();
        }
+       // Object Literal Expression
+       if (this.matchValue('PUNCTUATION', '{')) {
+           return this.parseObjectExpression();
+       }
      throw this.error(token, "Expression mam fahmouch wella ma kamlch.");
    }
 
@@ -588,7 +661,7 @@ class Parser {
                }
 
                // Parse the element expression
-               elements.push(this.parseExpression()); // Add the parsed expression
+               elements.push(this.parseAssignment()); // Use parseAssignment to allow expressions in arrays
 
                // Handle trailing comma case specifically
                if (this.checkValue('PUNCTUATION', ']')) {
@@ -602,6 +675,58 @@ class Parser {
        return { type: 'ArrayExpression', elements, line: startToken.line, column: startToken.column };
    }
 
+    // Parses object literal: '{' (property (',' property)* ','?)? '}'
+    parseObjectExpression(): ASTNode {
+        const startToken = this.previous(); // The '{' token
+        const properties: ASTNode[] = [];
+
+        if (!this.checkValue('PUNCTUATION', '}')) { // Check if object is not empty
+            do {
+                if (this.checkValue('PUNCTUATION', '}')) { // Handle trailing comma
+                    break;
+                }
+                properties.push(this.parseObjectProperty());
+            } while (this.matchValue('PUNCTUATION', ','));
+        }
+
+        this.consumeValue('PUNCTUATION', '}', "Kan tsnna '}' f lekher dyal object literal.");
+        return { type: 'ObjectExpression', properties, line: startToken.line, column: startToken.column };
+    }
+
+    // Parses a property inside an object literal: key ':' value
+    parseObjectProperty(): ASTNode {
+        const startToken = this.peek();
+        let keyNode: ASTNode;
+
+        // Key can be an Identifier or a Literal (String, Number)
+        if (this.check('IDENTIFIER')) {
+            const token = this.advance();
+            keyNode = { type: 'Identifier', name: token.value, line: token.line, column: token.column };
+        } else if (this.check('STRING') || this.check('NUMBER')) {
+            const token = this.advance();
+             const literalType = token.type === 'STRING' ? 'StringLiteral' : 'NumericLiteral';
+             keyNode = { type: literalType, value: token.value, line: token.line, column: token.column };
+        } else {
+             throw this.error(this.peek(), "Kan tsnna smia dyal property (Identifier) wella (String/Number) f object literal.");
+        }
+
+        this.consumeValue('PUNCTUATION', ':', "Kan tsnna ':' ba3d smia dyal property.");
+        const valueNode = this.parseAssignment(); // Value is an expression
+
+        // Basic property definition: { key: value }
+        return {
+            type: 'Property',
+            key: keyNode,
+            value: valueNode,
+            kind: 'init', // Standard AST property kind
+            method: false, // Basic support, not parsing methods yet
+            shorthand: false, // Basic support, not parsing shorthand yet
+            computed: false, // Basic support, not parsing computed property names yet
+            line: startToken.line,
+            column: startToken.column
+        };
+    }
+
 
   // --- Utility Methods ---
 
@@ -611,7 +736,7 @@ class Parser {
 
   peek(): Token {
      if (this.current >= this.tokens.length) {
-          const lastToken = this.tokens[this.tokens.length - 1];
+          const lastToken = this.tokens.length > 0 ? this.tokens[this.tokens.length - 1] : null;
          return { type: 'EOF', value: null, line: lastToken?.line ?? 0, column: lastToken?.column ?? 0 };
      }
     return this.tokens[this.current];
@@ -640,6 +765,14 @@ class Parser {
     return token.type === type && token.value === value;
   }
 
+   // Checks for a specific keyword value (handles keywords like 7ala, 3adi)
+    checkKeywordValue(value: string): boolean {
+        if (this.isAtEnd()) return false;
+        const token = this.peek();
+        return token.type === 'KEYWORD' && token.value === value;
+    }
+
+
   match(...types: string[]): boolean {
     for (const type of types) {
       if (this.check(type)) { this.advance(); return true; }
@@ -648,11 +781,17 @@ class Parser {
   }
 
    matchValue(type: string, ...values: any[]): boolean {
-    for (const value of values) {
-       if (this.checkValue(type, value)) { this.advance(); return true; }
+        if (type === 'KEYWORD') {
+            for (const value of values) {
+                if (this.checkKeywordValue(value)) { this.advance(); return true; }
+            }
+        } else {
+            for (const value of values) {
+                if (this.checkValue(type, value)) { this.advance(); return true; }
+            }
+        }
+        return false;
     }
-    return false;
-  }
 
   consume(type: string, message: string): Token {
     if (this.check(type)) { return this.advance(); }
@@ -660,9 +799,13 @@ class Parser {
   }
 
    consumeValue(type: string, value: any, message: string): Token {
-    if (this.checkValue(type, value)) { return this.advance(); }
-    throw this.error(this.peek(), message);
-  }
+        if (type === 'KEYWORD') {
+             if (this.checkKeywordValue(value)) { return this.advance(); }
+        } else {
+            if (this.checkValue(type, value)) { return this.advance(); }
+        }
+        throw this.error(this.peek(), message);
+    }
 
   error(token: Token, message: string): Error {
      const location = token.type === 'EOF' ? `la fin dyal code` : `"${String(token.value)}" (type ${token.type})`;
@@ -679,7 +822,7 @@ class Parser {
                     switch(this.peek().value) {
                         case 'tabit': case 'bdl': case 'dala': case 'ila': case 'wa9ila': case 'douz':
                         case 'madamt': case 'dir': case 'jrb': case 'bdl3la':
-                        case 'rj3': case 'wa9f': case 'kamml': case '7ala': case '3adi':
+                        case 'rj3': case 'wa9f': case 'kamml': // Note: 7ala/3adi might not be good sync points
                             return;
                     } break;
                  case 'PUNCTUATION':
@@ -696,3 +839,4 @@ export function parse(tokens: Token[]): ASTNode {
   const parser = new Parser(tokens);
   return parser.parse();
 }
+

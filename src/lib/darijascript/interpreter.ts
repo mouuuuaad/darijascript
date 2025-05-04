@@ -1,4 +1,5 @@
 
+
 // Import the parse function and ASTNode interface
 import { ASTNode, parse as parseCode } from './parser';
 
@@ -45,7 +46,7 @@ const BOOLEAN_LITERALS: { [key: string]: boolean } = {
 // Values that can't be used as identifiers because they start with numbers
 // but are used in the language (e.g., as property names or function names).
 const NUMBER_STARTING_IDENTIFIERS = [
-    '7yed', '7yedmnlwla', '3am' // Add others if needed
+    '7yed', '7yedmnlwla', '3am', '7ala', '3adi' // Add others if needed
 ];
 
 // Built-in function names mapped to their JS equivalents for direct call
@@ -156,28 +157,29 @@ function tokenize(code: string): Token[] {
       continue;
     }
 
-     // Check for keywords starting with numbers *before* general identifiers/numbers
-    if (code.substring(cursor).match(/^7ala(?!\w)/)) {
-        tokens.push({ type: 'KEYWORD', value: '7ala', line, column: startColumn });
-        cursor += 4; column += 4; continue;
-    }
-    if (code.substring(cursor).match(/^3adi(?!\w)/)) {
-        tokens.push({ type: 'KEYWORD', value: '3adi', line, column: startColumn });
-        cursor += 4; column += 4; continue;
-    }
-
-    // Check for number-starting identifiers used as methods/functions
-    let matchedNumIdentifier = false;
-    for (const numIdent of NUMBER_STARTING_IDENTIFIERS) {
-        if (code.substring(cursor).match(new RegExp(`^${numIdent}(?!\\w)`))) {
-            tokens.push({ type: 'IDENTIFIER', value: numIdent, line, column: startColumn });
-            cursor += numIdent.length;
-            column += numIdent.length;
-            matchedNumIdentifier = true;
-            break;
-        }
-    }
-    if (matchedNumIdentifier) continue;
+     // Check for number-starting identifiers used as methods/functions/keywords
+     let matchedNumIdentifier = false;
+     for (const numIdent of NUMBER_STARTING_IDENTIFIERS) {
+         // Use a regex that ensures the identifier is not part of a larger word
+         // Include check for '(' after method name to avoid matching variables like '7yedhia'
+         const regex = new RegExp(`^${numIdent}(?![a-zA-Z0-9_])`);
+         const match = code.substring(cursor).match(regex);
+          if (match) {
+            const followingChar = code[cursor + numIdent.length];
+             // Treat as identifier if followed by '.' or '(', likely a method/function call
+             // Treat '7ala' and '3adi' as keywords
+              if (numIdent === '7ala' || numIdent === '3adi') {
+                  tokens.push({ type: 'KEYWORD', value: numIdent, line, column: startColumn });
+              } else {
+                 tokens.push({ type: 'IDENTIFIER', value: numIdent, line, column: startColumn });
+              }
+             cursor += numIdent.length;
+             column += numIdent.length;
+             matchedNumIdentifier = true;
+             break;
+         }
+     }
+     if (matchedNumIdentifier) continue;
 
 
     // Identifiers, keywords (starting with letter/underscore), remaining built-ins, booleans
@@ -474,9 +476,14 @@ class Interpreter {
                          if (['mfatih', 'qiyam'].includes(name)) {
                               return nativeFunc.apply(Object, args); // Apply on Object
                          }
-                         return nativeFunc.apply(console, args); // Apply console methods on console
+                         // If the target object (e.g., console) has the method, apply it there.
+                         if (typeof console !== 'undefined' && name in console) {
+                           return (console as any)[name](...args);
+                         }
+                         // Fallback: call the function globally (less likely for these specific ones)
+                         return nativeFunc.apply(null, args);
                      }
-                     // For Math, Date static methods, apply on undefined/null
+                     // For Math, Date static methods, apply on null/global context
                      if (['t7t', 'fo9', 'dour', 'tsarraf', 'kbar', 'sghar', 'mnfi', 'rf3', 'jdr', 'daba'].includes(name)) {
                          return nativeFunc.apply(null, args);
                      }
@@ -492,7 +499,9 @@ class Interpreter {
                      // Default fallback (should ideally cover all cases above)
                      return nativeFunc.apply(undefined, args);
                 } catch (error: any) {
-                    throw new Error(`Ghalat f dlla "${name}": ${error.message}`);
+                    // Append line/col info if possible
+                    const currentLocation = this.getCurrentLocationInfo();
+                    throw new Error(`Ghalat f dlla "${name}"${currentLocation}: ${error.message}`);
                 }
             }, true);
         }
@@ -503,6 +512,14 @@ class Interpreter {
         // Declare 'hadi' (this) in the global scope. Its value might change in functions.
         // Initialize with window/global or undefined based on environment.
         this.globalEnv.declare('hadi', typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : undefined), true);
+    }
+
+    // Helper to get location info (potentially track current node)
+    // This is a placeholder - needs actual implementation if needed
+    getCurrentLocationInfo(): string {
+         // Add logic to track the current node being evaluated if possible
+         // return ` [Ln ?, Col ?]`;
+         return '';
     }
 
     interpret(node: ASTNode = this.ast, env: Environment = this.globalEnv): any {
@@ -516,7 +533,7 @@ class Interpreter {
                 throw error; // These are control flow signals, not runtime errors
              }
             this.errorOccurred = true;
-            const errorNode = node;
+            const errorNode = node; // Or potentially track a more specific node if possible
             const errorMessage = `Runtime Ghalat [Ln ${errorNode.line ?? '?'}, Col ${errorNode.column ?? '?'}]: ${error.message || error}`;
             this.output.push(`Ghalat: ${errorMessage}`);
             console.error("Interpreter Runtime Error:", errorMessage, error);
@@ -535,8 +552,16 @@ class Interpreter {
                 for (const stmt of node.body ?? []) {
                     lastVal = this.evaluate(stmt, env);
                     if (this.errorOccurred) return lastVal; // Propagate error object
+                    if (lastVal !== undefined && lastVal !== null && !(lastVal instanceof Object && Object.keys(lastVal).length === 0 && lastVal.error)) {
+                        // Optionally capture the value of the last expression statement if needed
+                        // Currently, only the side effects (like 'tbe3') are relevant from top-level statements.
+                    }
                 }
-                return lastVal;
+                // The final result of a program is typically undefined unless the last statement was a return (not valid at top level)
+                // or an expression statement whose value we want to return (like in a REPL).
+                // For now, return undefined for Program execution.
+                return undefined;
+
 
             case 'ExpressionStatement':
                 return this.evaluate(node.expression!, env);
@@ -592,8 +617,9 @@ class Interpreter {
                 return this.visitSwitchStatement(node, env);
             case 'ArrayExpression':
                 return this.visitArrayExpression(node, env);
+            case 'ObjectExpression':
+                 return this.visitObjectExpression(node, env);
              // Add cases for other potential AST node types:
-             // case 'ObjectExpression': ...
              // case 'ConditionalExpression': ...
 
             default:
@@ -608,6 +634,8 @@ class Interpreter {
             lastResult = this.evaluate(statement, blockEnv);
             if (this.errorOccurred) return lastResult;
         }
+        // A block statement itself evaluates to the value of the last statement executed,
+        // but often its return value is ignored unless it's the body of a function without explicit return.
         return lastResult;
     }
 
@@ -619,14 +647,14 @@ class Interpreter {
                  throw new Error("Variable declaration khass smia.");
              }
              const name = declarator.id.name;
-              let value: any = undefined; // Default to undefined
+              let value: any = undefined; // Initialize with undefined, like JS
              if (declarator.initializer) {
                  value = this.evaluate(declarator.initializer, env);
                  if (this.errorOccurred) return value; // Propagate error object
              }
              env.declare(name, value, isConstant);
          }
-         return undefined;
+         return undefined; // Variable declaration statement itself returns undefined
      }
 
       visitAssignmentExpression(node: ASTNode, env: Environment): any {
@@ -783,7 +811,7 @@ class Interpreter {
         let funcToCall: any;
 
         // Evaluate arguments first
-        const args = (node.arguments ?? []).map(arg => {
+        let args = (node.arguments ?? []).map(arg => { // Use let for args
             const evaluatedArg = this.evaluate(arg, env);
             if (this.errorOccurred) throw new Error("Ghalat f argument dyal function call."); // Throw to signal error
             return evaluatedArg;
@@ -818,7 +846,7 @@ class Interpreter {
             funcToCall = obj[propName];
             thisContext = obj; // 'this' is the object itself
 
-             // Special handling for built-in methods like Array.map/filter etc.
+             // Special handling for built-in methods like Array.map/filter etc. that take callbacks
              const requiresCallbackWrapper = (obj instanceof Array || typeof obj === 'string') &&
                                             typeof propName === 'string' &&
                                             ['map', 'filter', 'find', 'forEach', 'reduce'].includes(propName);
@@ -835,8 +863,9 @@ class Interpreter {
                          }
                     });
                     // Set 'hadi' (this) within the callback. Use the original 'thisContext' if available.
-                    // This might need refinement depending on desired 'this' behavior in callbacks.
-                    callbackEnv.declare('hadi', thisContext, false);
+                    // For Array methods, 'this' inside the callback can be passed as a second argument to map/filter etc.
+                    // We need to decide the desired behavior or mimic JS default (undefined in strict, global otherwise)
+                    callbackEnv.declare('hadi', thisContext, false); // Use obj as 'hadi' for now
 
                     let returnValue: any = undefined;
                     try {
@@ -851,7 +880,9 @@ class Interpreter {
                     }
                     return returnValue;
                  };
-                 args[0] = jsCallbackWrapper; // Replace the Darija function with the JS wrapper
+                 // Need to handle the optional 'thisArg' for methods like map, filter, etc.
+                 const thisArg = args[1]; // Assuming second arg is thisArg, if provided
+                 args = [jsCallbackWrapper, thisArg]; // Adjust args for the native call
              }
 
 
@@ -897,8 +928,8 @@ class Interpreter {
                   callEnv.declare(param.name, args[index], false);
              });
               // Set 'hadi' (this) for the user function call.
-              // For simplicity, reuse the global 'hadi'. More complex logic could bind 'this' based on call context.
-             callEnv.declare('hadi', this.globalEnv.lookup('hadi'), false); // Should perhaps use 'thisContext' if determined?
+              // Use the determined thisContext (e.g., the object for method calls, global otherwise)
+             callEnv.declare('hadi', thisContext, false);
               try {
                  // Evaluate the function body
                  this.evaluate(funcToCall.body, callEnv);
@@ -1125,6 +1156,7 @@ class Interpreter {
              const mappedMethod = this.mapDarijaMethodToJs(darijaPropName);
              if (mappedMethod && typeof obj[mappedMethod] === 'function') {
                 // If it's a method, return it bound to the object 'this' context
+                 // This ensures 'this' is correctly set when the function is called later via CallExpression
                 return obj[mappedMethod].bind(obj);
              }
              // If not a mapped property or method, use the Darija name directly
@@ -1133,16 +1165,15 @@ class Interpreter {
          try {
              // Access the property using the determined name (could be number, string, symbol, or Darija name)
             const value = obj[propName];
-            // If the retrieved value is a native JS function, bind it to the object instance.
-            // This ensures 'this' is set correctly when the method is called later.
-            // Exclude DarijaScript functions which manage their own closure/this.
+            // If the retrieved value is a native JS function (but not one we manually bound above),
+            // bind it to the object instance here.
             if (typeof value === 'function' && !(value instanceof DarijaScriptFunction)) {
-                 // Check if it's actually a method of this object instance
-                 if (Object.prototype.hasOwnProperty.call(obj, propName) || propName in obj) {
-                     return value.bind(obj);
-                 }
+                // Check if it's a method of this object instance or its prototype chain
+                if (propName in obj) { // Use 'in' to check prototype chain as well
+                    return value.bind(obj);
+                }
             }
-            return value; // Return the raw value (could be primitive, object, undefined, etc.)
+            return value; // Return the raw value (primitive, object, DarijaScriptFunction, undefined, etc.)
          } catch (error: any) {
              throw new Error(`Ghalat mli kan qra property "${String(propName)}" mn ${typeof obj}: ${error.message}`);
          }
@@ -1262,6 +1293,32 @@ class Interpreter {
         return elements;
     }
 
+     visitObjectExpression(node: ASTNode, env: Environment): object {
+         const obj: { [key: string]: any } = {};
+         for (const propNode of node.properties ?? []) {
+             if (propNode.type !== 'Property' || !propNode.key || !propNode.value) {
+                 throw new Error("Object literal property format ghalat.");
+             }
+             let key: string | number;
+             if (propNode.key.type === 'Identifier') {
+                 key = propNode.key.name!;
+             } else if (propNode.key.type === 'StringLiteral' || propNode.key.type === 'NumericLiteral') {
+                 key = propNode.key.value;
+             } else {
+                  throw new Error("Smia dyal object property khass tkoun Identifier, String, wla Number.");
+             }
+
+             const value = this.evaluate(propNode.value, env);
+             if (this.errorOccurred) throw new Error("Ghalat f evaluation dyal object property value.");
+
+             obj[key] = value;
+         }
+          if (this.errorOccurred) {
+             return {}; // Should not be reached
+         }
+         return obj;
+     }
+
 
     // --- Helper Methods ---
 
@@ -1379,3 +1436,4 @@ export function interpret(code: string): { output: string[], error?: string } {
     return { output: output, error: `Ghalat System: ${errorMessage}` };
   }
 }
+

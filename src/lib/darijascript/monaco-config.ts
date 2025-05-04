@@ -1,4 +1,5 @@
 
+
 import type * as monacoEditor from 'monaco-editor/esm/vs/editor/editor.api';
 
 export function setupDarijaScriptLanguage(monaco: typeof monacoEditor) {
@@ -45,6 +46,13 @@ export function setupDarijaScriptLanguage(monaco: typeof monacoEditor) {
     tokenizer: {
       root: [
         // identifiers and keywords
+        // Need to handle keywords starting with numbers explicitly if tokenizer identifies them as numbers
+        [/^7ala(?![a-zA-Z0-9_])/, 'keyword'], // Match '7ala' specifically
+        [/^3adi(?![a-zA-Z0-9_])/, 'keyword'], // Match '3adi' specifically
+        [/^7yed(?![a-zA-Z0-9_])/, 'support.function.builtin'], // Match '7yed' specifically
+        [/^7yedmnlwla(?![a-zA-Z0-9_])/, 'support.function.builtin'], // Match '7yedmnlwla' specifically
+         [/^3am(?![a-zA-Z0-9_])/, 'support.function.builtin'], // Match '3am' specifically
+
         [/[a-zA-Z_][\w$]*/, { cases: { '@keywords': 'keyword',
                                        '@constants': 'keyword.constant', // Differentiate constants
                                        '@typeKeywords': 'keyword.type', // Differentiate type-related keywords
@@ -55,18 +63,18 @@ export function setupDarijaScriptLanguage(monaco: typeof monacoEditor) {
         { include: '@whitespace' },
 
         // delimiters and operators
-        [/[{}()[\]]/, '@brackets'],
+        [/[{}()[\]]/, '@brackets'], // Highlight braces, brackets, parentheses
         [/[<>](?!@symbols)/, '@brackets'],
         [/@symbols/, { cases: { '@operators': 'operator',
                                 '@default'  : '' } } ],
 
-        // numbers
+        // numbers - Placed after keyword checks for 7ala etc.
         [/\d*\.\d+([eE][-+]?\d+)?/, 'number.float'],
         [/0[xX][0-9a-fA-F]+/, 'number.hex'],
-        [/\d+/, 'number'],
+        [/\d+/, 'number'], // Matches integers
 
         // delimiter: after number because of .\d floats
-        [/[;,.]/, 'delimiter'],
+        [/[;,.:]/, 'delimiter'], // Added colon for object literals
 
         // strings
         [/"([^"\\]|\\.)*$/, 'string.invalid' ], // non-teminated string
@@ -176,6 +184,8 @@ export function setupDarijaScriptLanguage(monaco: typeof monacoEditor) {
                 createCompletionItem('ghlat', monaco.languages.CompletionItemKind.Function, 'ghlat($1)', 'ghlat(...args)', 'Prints arguments as an error.'),
                 createCompletionItem('nbehh', monaco.languages.CompletionItemKind.Function, 'nbehh($1)', 'nbehh(...args)', 'Prints arguments as a warning.'),
                 createCompletionItem('rmmi', monaco.languages.CompletionItemKind.Function, 'rmmi(${1:error})', 'rmmi(error)', 'Throws an error.'),
+                createCompletionItem('mfatih', monaco.languages.CompletionItemKind.Function, 'mfatih(${1:object})', 'mfatih(obj)', 'Returns object keys.'),
+                createCompletionItem('qiyam', monaco.languages.CompletionItemKind.Function, 'qiyam(${1:object})', 'qiyam(obj)', 'Returns object values.'),
                 // Add more built-ins with simple signatures as needed...
 
 
@@ -219,6 +229,19 @@ export function setupDarijaScriptLanguage(monaco: typeof monacoEditor) {
                     documentation: 'dala Definition (Function)',
                     range: range
                 },
+                {
+                    label: 'object',
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: [
+                        '{',
+                        '\t${1:key}: ${2:value}$0',
+                        '}'
+                    ].join('\n'),
+                     insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    documentation: 'Object Literal',
+                    range: range
+                },
+
 
             ];
             return { suggestions: suggestions };
@@ -227,4 +250,5 @@ export function setupDarijaScriptLanguage(monaco: typeof monacoEditor) {
 
     console.log(`DarijaScript language (${languageId}) configured for Monaco.`);
 }
+
 
