@@ -57,11 +57,22 @@ export default function AdminPage() {
       }
     } catch (error: any) {
       console.error("Error during Google sign-in:", error);
+      console.error("Error Code:", error.code);
+      console.error("Error Message:", error.message);
+
        // Handle specific error codes if needed
        if (error.code === 'auth/popup-closed-by-user') {
-        setError("Sign-in cancelled.");
+        setError("Sign-in cancelled by user.");
+       } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-blocked') {
+            setError("Sign-in popup blocked or cancelled. Please allow popups for this site.");
+       } else if (error.code === 'auth/unauthorized-domain') {
+           // NOTE: 'auth/unauthorized-domain' might manifest as "requested action is invalid"
+           // This is a strong indicator to check Firebase Console settings.
+           setError("Sign-in failed: This domain is not authorized. Please check Firebase Authentication settings.");
        } else {
-         setError("Failed to sign in with Google.");
+         // Generic error, often includes "The requested action is invalid." if domain isn't authorized
+         // Suggest checking Firebase Console as a primary troubleshooting step.
+         setError(`Sign-in failed: ${error.message}. Ensure this domain is listed in Firebase Auth > Google Sign-in > Authorized domains.`);
        }
     }
   };
@@ -139,13 +150,15 @@ export default function AdminPage() {
              </CardHeader>
              <CardContent className="flex flex-col items-center gap-4">
                  {error && (
-                      // Use a more prominent error display for access denied
+                      // Use a more prominent error display for access denied or login failure
                       error.startsWith("Access denied") ? (
                            <p className="text-destructive text-sm text-center font-semibold flex items-center justify-center gap-1 p-2 bg-destructive/10 border border-destructive/30 rounded-md">
                               <ShieldAlert size={16}/> {error}
                            </p>
                       ) : (
-                           <p className="text-destructive text-sm flex items-center gap-1"><AlertTriangle size={14}/> {error}</p>
+                           <p className="text-destructive text-sm text-center flex items-center justify-center gap-1 p-2 bg-destructive/10 border border-destructive/30 rounded-md">
+                              <AlertTriangle size={16}/> {error}
+                           </p>
                       )
 
                   )}
