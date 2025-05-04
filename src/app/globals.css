@@ -5,73 +5,73 @@
 
 @layer base {
   :root {
-    --background: 210 100% 98%; /* Very light sky blue */
-    --foreground: 240 10% 3.9%; /* Near black */
+    --background: 210 20% 98%; /* Very light cool gray */
+    --foreground: 215 25% 15%; /* Dark cool gray */
     --card: 0 0% 100%; /* White */
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 215 25% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 262 80% 55%; /* Vibrant Violet */
-    --primary-foreground: 210 40% 98%; /* White */
-    --secondary: 180 70% 45%; /* Bright Teal */
+    --popover-foreground: 215 25% 15%;
+    --primary: 217 91% 60%; /* Strong Blue */
+    --primary-foreground: 0 0% 98%; /* White */
+    --secondary: 210 10% 40%; /* Medium Gray-Blue */
     --secondary-foreground: 0 0% 98%; /* White */
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 340 90% 60%; /* Hot Pink */
+    --muted: 210 30% 94%; /* Lighter Gray-Blue */
+    --muted-foreground: 215 15% 55%; /* Medium-Light Gray */
+    --accent: 25 95% 53%; /* Bright Orange */
     --accent-foreground: 0 0% 100%; /* White */
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 262 80% 50%; /* Slightly darker Violet for ring */
-    --chart-1: 262 70% 60%; /* Adjusted chart colors */
-    --chart-2: 180 65% 50%;
-    --chart-3: 340 80% 65%;
-    --chart-4: 40 90% 60%; /* Sunny Orange */
-    --chart-5: 120 60% 55%; /* Leafy Green */
+    --border: 210 20% 88%; /* Light Gray-Blue Border */
+    --input: 210 20% 88%;
+    --ring: 217 91% 55%; /* Slightly darker blue for ring */
+    --chart-1: 217 80% 65%; /* Adjusted chart colors */
+    --chart-2: 25 85% 60%;
+    --chart-3: 160 70% 50%; /* Teal */
+    --chart-4: 210 15% 70%; /* Lighter Gray-Blue */
+    --chart-5: 45 90% 55%; /* Gold/Yellow */
     --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%; /* Keep sidebar subtle */
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 262 80% 55%; /* Use primary color */
+    --sidebar-background: 210 25% 96%; /* Slightly different light gray for sidebar */
+    --sidebar-foreground: 215 25% 25%; /* Darker gray for sidebar text */
+    --sidebar-primary: 217 91% 60%; /* Use primary color */
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 210 40% 96.1%; /* Muted accent */
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 262 80% 50%;
+    --sidebar-accent: 210 30% 90%; /* Muted accent for sidebar */
+    --sidebar-accent-foreground: 215 25% 10%; /* Darker text on sidebar accent */
+    --sidebar-border: 210 20% 85%;
+    --sidebar-ring: 217 91% 55%;
   }
   .dark {
-    --background: 240 10% 3.9%; /* Near black */
-    --foreground: 0 0% 98%; /* White */
-    --card: 240 5% 10%; /* Dark Gray */
-    --card-foreground: 0 0% 98%;
-    --popover: 240 5% 10%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 262 80% 65%; /* Brighter Violet */
-    --primary-foreground: 210 40% 98%;
-    --secondary: 180 70% 55%; /* Brighter Teal */
+    --background: 220 15% 10%; /* Very dark blue-gray */
+    --foreground: 210 20% 96%; /* Light Gray */
+    --card: 220 15% 15%; /* Darker blue-gray card */
+    --card-foreground: 210 20% 96%;
+    --popover: 220 15% 13%; /* Darker popover */
+    --popover-foreground: 210 20% 96%;
+    --primary: 217 85% 65%; /* Slightly brighter blue */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 210 10% 50%; /* Lighter Gray-Blue */
     --secondary-foreground: 0 0% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 340 90% 70%; /* Brighter Pink */
+    --muted: 220 15% 25%; /* Dark muted blue-gray */
+    --muted-foreground: 210 15% 65%; /* Lighter gray text */
+    --accent: 25 90% 60%; /* Brighter Orange */
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 262 80% 60%; /* Brighter Violet ring */
-    --chart-1: 262 70% 70%; /* Adjusted chart colors for dark */
-    --chart-2: 180 65% 60%;
-    --chart-3: 340 80% 75%;
-    --chart-4: 40 90% 70%;
-    --chart-5: 120 60% 65%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 262 80% 65%; /* Use primary color */
+    --border: 220 15% 25%; /* Darker border */
+    --input: 220 15% 25%;
+    --ring: 217 85% 60%; /* Brighter blue ring */
+    --chart-1: 217 75% 70%; /* Adjusted chart colors for dark */
+    --chart-2: 25 80% 65%;
+    --chart-3: 160 65% 55%;
+    --chart-4: 210 15% 60%;
+    --chart-5: 45 85% 60%;
+    --sidebar-background: 220 15% 12%; /* Darker sidebar */
+    --sidebar-foreground: 210 20% 90%; /* Lighter sidebar text */
+    --sidebar-primary: 217 85% 65%; /* Use primary color */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 262 80% 60%;
+    --sidebar-accent: 220 15% 28%; /* Dark sidebar accent */
+    --sidebar-accent-foreground: 210 20% 95%;
+    --sidebar-border: 220 15% 25%;
+    --sidebar-ring: 217 85% 60%;
   }
 }
 

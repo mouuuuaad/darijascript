@@ -2,7 +2,7 @@
 "use client";
 
 import type * as React from 'react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import Editor, { type Monaco } from '@monaco-editor/react';
 import type * as monacoEditor from 'monaco-editor/esm/vs/editor/editor.api';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,15 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { interpret } from '@/lib/darijascript/interpreter';
 import { setupDarijaScriptLanguage } from '@/lib/darijascript/monaco-config';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { DarijaDocs } from '@/components/docs/darija-docs';
 
 export default function Home() {
   const [code, setCode] = useState('// Salam! Ktbo l code dyalkom hna\nbdl x = 10;\nbdl y = 20;\n\ntbe3(x + y);\n\n// Created by MOUAAD IDOUFKIR'); // Default code
@@ -54,7 +63,7 @@ export default function Home() {
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col h-screen bg-gradient-to-br from-background to-blue-100 dark:to-purple-900/30">
+      <div className="flex flex-col h-screen bg-gradient-to-br from-background to-blue-100 dark:to-blue-900/30">
         <header className="flex items-center justify-between p-4 border-b bg-card/80 backdrop-blur-sm text-card-foreground shadow-md sticky top-0 z-10">
          <div className="flex items-center gap-3">
             <Code className="w-7 h-7 text-primary" />
@@ -64,16 +73,32 @@ export default function Home() {
             </div>
          </div>
           <div className="flex items-center space-x-2">
-             <Tooltip>
-               <TooltipTrigger asChild>
-                 <Button variant="ghost" size="icon" onClick={() => alert("DarijaScript Documentation:\n\nKeywords:\n- tabit: Declare constant (const)\n- bdl: Declare variable (let/var)\n- ila: If\n- ella: Else\n- wa9ila: Else if\n- douz: For loop (e.g., douz i=0 hta 5)\n- madamt: While loop\n- dir...madamt: Do...while loop\n- dala: Function definition\n- rj3: Return\n- wa9f: Break\n- kamml: Continue\n- jrb: Try\n- msk: Catch\n- fakhr: Finally\n\nBuilt-in Functions:\n- tbe3(...args): Log to output (console.log)\n- ghlat(...args): Log error\n- nbehh(...args): Log warning\n- etc. (see full list if available)\n\nOperators: +, -, *, /, =, ==, !=, <, >, <=, >=, &&, ||, !\n\nValues:\n- s7i7: true\n- ghalat: false\n- Numbers (e.g., 10, 3.14)\n- Strings (e.g., \"Salam\")")}>
-                  <Info className="w-5 h-5 text-secondary" />
-                 </Button>
-               </TooltipTrigger>
-               <TooltipContent>
-                 <p>DarijaScript Docs (L9awa3id)</p>
-               </TooltipContent>
-             </Tooltip>
+            <Sheet>
+               <Tooltip>
+                 <TooltipTrigger asChild>
+                   <SheetTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <Info className="w-5 h-5 text-secondary" />
+                      </Button>
+                   </SheetTrigger>
+                 </TooltipTrigger>
+                 <TooltipContent>
+                   <p>DarijaScript Docs (L9awa3id)</p>
+                 </TooltipContent>
+               </Tooltip>
+               <SheetContent className="w-full sm:w-3/4 md:w-1/2 lg:w-1/3 xl:max-w-xl overflow-y-auto">
+                 <SheetHeader>
+                   <SheetTitle className="text-primary">DarijaScript Documentation</SheetTitle>
+                   <SheetDescription>
+                     Your guide to coding in DarijaScript. Click sections below to learn more.
+                   </SheetDescription>
+                 </SheetHeader>
+                 <ScrollArea className="h-[calc(100%-4rem)] pr-6"> {/* Adjust height and padding as needed */}
+                   <DarijaDocs />
+                 </ScrollArea>
+               </SheetContent>
+             </Sheet>
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="outline" size="icon" onClick={clearOutput} className="border-muted-foreground/50 hover:bg-muted">
@@ -119,7 +144,6 @@ export default function Home() {
                   cursorBlinking: 'smooth',
                   cursorSmoothCaretAnimation: 'on',
                   renderLineHighlight: 'gutter',
-
                 }}
               />
             </div>
