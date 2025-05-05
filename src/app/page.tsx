@@ -30,20 +30,6 @@ const initialCode = `
 // Salam! Ktbo l code dyalkom hna
 
 tbe3("DarijaScript is running!");
-
-bdl arr = [1, 2, 3];
-bdl last = arr.7yed(); // Pop
-tbe3("Last element popped: " + last);
-tbe3("Array after pop: " + arr);
-
-bdl first = arr.7yedmnlwla(); // Shift
-tbe3("First element shifted: " + first);
-tbe3("Array after shift: " + arr);
-
-bdl obj = { name: "Moha", age: 30 };
-tbe3("Object keys: " + mfatih(obj));
-tbe3("Object values: " + qiyam(obj));
-
 `;
 
 function runCode(code: string, outputCallback: (output: string[]) => void) {
