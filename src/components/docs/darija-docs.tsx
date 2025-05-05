@@ -204,7 +204,7 @@ export function DarijaDocs() {
           </AccordionItem>
         ))}
          <div className="creator-credit">
-            Developed with ❤️ by <a href="https://github.com/MOUAADIDO" target="_blank" rel="noopener noreferrer" className="creator-name">MOUAAD IDOUFKIR</a>
+            Developed by <a href="https://github.com/MOUAADIDO" target="_blank" rel="noopener noreferrer" className="creator-name">MOUAAD IDOUFKIR</a>
         </div>
       </Accordion>
     </div>

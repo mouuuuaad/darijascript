@@ -1,184 +1,281 @@
-
 'use client';
 
+import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useState } from 'react';
-import { collection, query, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
-import { firestore } from '@/lib/firebase/client';
-// Removed AuthGuard as authentication is handled manually
-// import { AuthGuard } from '@/components/auth/auth-guard';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
-import { auth } from '@/lib/firebase/client';
+import { Input } from '@/components/ui/input';
+import { auth, firestore } from '@/lib/firebase/client';
 import { signOut, GoogleAuthProvider, signInWithPopup, UserCredential } from 'firebase/auth';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
+import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { AlertTriangle, LogIn, LogOut, LayoutDashboard, ShieldAlert } from 'lucide-react'; // Import icons, replaced Prayer with LayoutDashboard
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { 
+    AlertTriangle, 
+    LogIn, 
+    LogOut, 
+    LayoutDashboard, 
+    ShieldAlert, 
+    UserCheck, 
+    VenetianMask, 
+    Loader, 
+    Lock, 
+    Shield
+} from 'lucide-react';
+import { getPrayers } from '@/services/prayer-service';
+import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 interface Prayer {
   id: string;
-  text: string | null; // Allow null text just in case
-  submittedAt: Timestamp | null; // Firestore Timestamp
+  text: string | null;
+  submittedAt: Date | null;
 }
 
-// Helper function to format Firestore Timestamp safely
-const formatTimestamp = (timestamp: Timestamp | null): string => {
-  // Double check timestamp validity before calling .toDate()
-  if (timestamp && typeof timestamp.toDate === 'function') {
+// Helper function to format date objects safely
+const formatDate = (date: Date | null): string => {
+  if (date instanceof Date && !isNaN(date.getTime())) {
     try {
-      const date = timestamp.toDate();
-      // Note: toLocaleString() can cause hydration mismatches if server/client locales differ.
-      // Consider using a consistent format like date-fns format(date, 'yyyy-MM-dd HH:mm:ss') if needed.
-      return date.toLocaleString();
+      return format(date, 'yyyy-MM-dd HH:mm:ss');
     } catch (e) {
-      console.error("AdminPage: Error converting timestamp:", e, timestamp);
+      console.error("AdminPage: Error formatting date:", e, date);
       return 'Invalid Date Format';
     }
+  } else if (date === null) {
+    return 'No Date Provided';
+  } else {
+    console.warn("AdminPage: Invalid date value encountered in formatDate:", date);
+    return 'Invalid Date Value';
   }
-  return 'No Date Provided';
 };
 
-const ALLOWED_ADMIN_EMAIL = "mouaadidoufkir2@gmail.com"; // Define the allowed admin email
-
+const ALLOWED_ADMIN_EMAIL = "mouaadidoufkir2@gmail.com";
+const FAILED_ATTEMPTS_LIMIT = 3; // Set a limit for failed challenge attempts
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth();
   const [prayers, setPrayers] = useState<Prayer[]>([]);
   const [loadingPrayers, setLoadingPrayers] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showChallenge, setShowChallenge] = useState(false);
+  const [challengerName, setChallengerName] = useState(''); 
+  const [isSubmittingChallenge, setIsSubmittingChallenge] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0); // Track failed attempts
+  const [loginTimestamp, setLoginTimestamp] = useState<Date | null>(null); // Track login time
+  const { toast } = useToast();
 
-  // Login with Google and check email
-  const handleLogin = async () => {
-    setError(null); // Clear previous errors
-    const provider = new GoogleAuthProvider();
-    console.log("AdminPage: Initiating Google sign-in...");
-    try {
-      const result: UserCredential = await signInWithPopup(auth, provider);
-      console.log("AdminPage: Google sign-in successful. User:", result.user.email);
-      // Check if the logged-in user's email is the allowed admin email
-      if (result.user.email !== ALLOWED_ADMIN_EMAIL) {
-        // If not the allowed email, sign them out immediately and show an error
-        console.warn(`AdminPage: Unauthorized login attempt by ${result.user.email}. Signing out.`);
-        await signOut(auth);
-        setError(`Access denied. Only ${ALLOWED_ADMIN_EMAIL} can log in.`);
-      } else {
-        // Allowed user logged in successfully
-        console.log(`AdminPage: Admin ${result.user.email} logged in successfully.`);
-        //setError(null); // Ensure no error message persists after successful login
+  // Enhanced function to initiate Google Sign-In AFTER the challenge
+  const startGoogleSignIn = async () => {
+      setError(null);
+      setIsSubmittingChallenge(false);
+      
+      // We'll keep the dialog open while checking
+      const provider = new GoogleAuthProvider();
+      console.log("AdminPage: Starting Google sign-in process for:", challengerName || "Unknown challenger");
+
+      try {
+        // Show a toast while verifying
+        toast({
+          title: "Sbr chwiya...",
+          description: `Rah kan chofou wach nta ${challengerName || 'houwa'} l7a9ani!`,
+          className: "toast-info",
+        });
+
+        const result: UserCredential = await signInWithPopup(auth, provider);
+        const loggedInEmail = result.user.email;
+        console.log("AdminPage: Google sign-in attempt by:", loggedInEmail);
+
+        if (loggedInEmail !== ALLOWED_ADMIN_EMAIL) {
+          console.warn(`AdminPage: Unauthorized login attempt by ${loggedInEmail}. Signing out.`);
+          await signOut(auth);
+          
+          // Increment failed attempts for this session
+          const newFailedAttempts = failedAttempts + 1;
+          setFailedAttempts(newFailedAttempts);
+          
+          // Different messages based on number of attempts
+          let denialTitle = "Waaaaa Mal9inach Smitk!";
+          let denialMessage = "Hadchi li dakhelti machi houwa. Lmochkil f email.";
+          
+          if (newFailedAttempts >= FAILED_ATTEMPTS_LIMIT) {
+            denialTitle = "Khayf 3lik a sahbi!";
+            denialMessage = "Hadchi bezzaf! Bghiti tkhrbe9? Rah kayn logs 3la koulchi!";
+          }
+          
+          setError(`Accès interdit: ${loggedInEmail} machi houwa l'admin!`);
+          toast({
+            title: denialTitle,
+            description: denialMessage,
+            variant: "destructive",
+            className: "toast-error",
+          });
+          
+          // Close the challenge if open
+          setShowChallenge(false);
+          
+        } else {
+          console.log(`AdminPage: Admin ${loggedInEmail} logged in successfully.`);
+          // Record login time
+          const now = new Date();
+          setLoginTimestamp(now);
+          
+          toast({
+              title: "Mrhe7ba Sidi L'Admin!",
+              description: `Tconnectiti b njah! L'blasa dyalek hadi ${user?.email || loggedInEmail}!`,
+              className: "toast-success",
+          });
+          
+          // Reset failed attempts on successful login
+          setFailedAttempts(0);
+          // Close the challenge dialog
+          setShowChallenge(false);
+        }
+      } catch (error: any) {
+          console.error("AdminPage: Error during Google sign-in:", error);
+
+          let toastTitle = "Ghalat f Dkhoul!";
+          let toastDescription = `W9e3 chi mochkil: ${error.message}.`;
+
+          if (error.code === 'auth/popup-closed-by-user') {
+              toastDescription = "Khwiti? Makeinch mochkil! Ma9dartich taked challenge?";
+              setError("Tannulation du sign-in.");
+          } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-blocked') {
+              toastDescription = "Popup tbloka wella tlgha. 3tina permission bach ndkhlo.";
+              setError(toastDescription);
+          } else if (error.code === 'auth/unauthorized-domain') {
+             toastDescription = "Ghalat f Dkhoul: Had l'domain ma msjjelch. Vérifier les paramètres Firebase.";
+             setError(toastDescription);
+          } else {
+              // Generic error
+              toastDescription = `W9e3 chi mochkil: ${error.message}. Vérifier les paramètres Firebase wla 3awed men be3d.`;
+              setError(toastDescription);
+          }
+          toast({
+            title: toastTitle,
+            description: toastDescription,
+            variant: "destructive",
+            className: "toast-error",
+          });
+          
+          // Close challenge dialog on error
+          setShowChallenge(false);
       }
-    } catch (error: any) {
-      console.error("AdminPage: Error during Google sign-in:", error);
-      console.error("AdminPage: Error Code:", error.code);
-      console.error("AdminPage: Error Message:", error.message);
-
-       // Handle specific error codes if needed
-       if (error.code === 'auth/popup-closed-by-user') {
-        setError("Sign-in cancelled by user."); // This message is displayed when the popup is closed.
-       } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-blocked') {
-            setError("Sign-in popup blocked or cancelled. Please allow popups for this site.");
-       } else if (error.code === 'auth/unauthorized-domain') {
-           // NOTE: 'auth/unauthorized-domain' might manifest as "requested action is invalid"
-           // This is a strong indicator to check Firebase Console settings.
-           setError("Sign-in failed: This domain is not authorized. Please check Firebase Authentication settings.");
-       } else {
-         // Generic error, often includes "The requested action is invalid." if domain isn't authorized
-         // Suggest checking Firebase Console as a primary troubleshooting step.
-         setError(`Sign-in failed: ${error.message}. Ensure this domain is listed in Firebase Auth > Google Sign-in > Authorized domains.`);
-       }
-    }
   };
 
-  // Logout
+  // Enhanced method for handling the initial login button click 
+  const handleLoginClick = () => {
+      setError(null); // Clear errors before showing challenge
+      setChallengerName(''); // Reset name input
+      setShowChallenge(true);
+      
+      // Record this attempt for analytics (could be logged to your backend)
+      console.log("AdminPage: Admin Login button clicked, showing challenge.", new Date());
+      
+      // You could potentially add a delay here to make it feel more secure
+      // or add a CAPTCHA or other verification step
+  };
+
+  // Enhanced challenge submission with more Moroccan flavor
+  const handleChallengeSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); // Prevent default form submission
+    setIsSubmittingChallenge(true); // Show loading state on button
+    console.log(`AdminPage: Challenge submitted by: ${challengerName || 'Anonymous'} at ${new Date()}`);
+
+    // Enhanced delay to build anticipation
+    toast({
+        title: "3la slamtek a l'batal!",
+        description: `Yak a ${challengerName || 'Sidi l\'Modir'}, ghadi ncheckiw wach nta houwa li kan9elbo 3lih!`,
+        className: "toast-info",
+    });
+
+    // More dramatic delay for suspense
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    
+    // Proceed to Google Sign-In
+    startGoogleSignIn();
+  };
+
+  // Enhanced Logout with Moroccan flavor
   const handleLogout = async () => {
-    setError(null); // Clear errors on logout
+    setError(null);
     console.log("AdminPage: Logging out...");
     try {
       await signOut(auth);
-        console.log("AdminPage: Logout successful.");
-    } catch (error) {
+      console.log("AdminPage: Logout successful.");
+      toast({ 
+        title: "Bslama a Sidi l'Admin!", 
+        description: "Khrejti b najah. Allah ysahel!", 
+      });
+      // Reset login timestamp
+      setLoginTimestamp(null);
+    } catch (error: any) {
       console.error("AdminPage: Error signing out:", error);
-       setError("Failed to sign out.");
+      const errorMessage = "W9e3 chi ghalat f lkhrouj. 3awed.";
+      setError(errorMessage);
+      toast({
+        title: "Ghalat f Lkhrouj",
+        description: errorMessage,
+        variant: "destructive",
+        className: "toast-error",
+      });
     }
   };
 
-
   useEffect(() => {
-    // Only fetch prayers if the user is logged in *and* has the allowed email
-    // The check in handleLogin ensures only the allowed user can stay logged in,
-    // but this adds an extra layer of security.
     console.log("AdminPage useEffect: Checking user state. Loading:", authLoading, "User:", user?.email);
 
     if (!authLoading && user && user.email === ALLOWED_ADMIN_EMAIL) {
-      console.log("AdminPage useEffect: Authorized admin user found. Setting up Firestore listener.");
+      console.log("AdminPage useEffect: Authorized admin user found. Fetching prayers from Prisma.");
       setLoadingPrayers(true);
-      setError(null); // Clear previous errors
-      const prayersCollection = collection(firestore, 'prayers');
-      // Order prayers by submission time, newest first
-      const q = query(prayersCollection, orderBy('submittedAt', 'desc'));
+      setError(null);
 
-      // Set up a real-time listener
-       console.log("AdminPage useEffect: Attaching onSnapshot listener to 'prayers' collection.");
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        console.log(`AdminPage onSnapshot: Received ${querySnapshot.size} documents.`);
-        const prayersData: Prayer[] = [];
-        querySnapshot.forEach((doc) => {
-           // Defensive check: Ensure data exists and has expected fields before pushing
-           const data = doc.data();
-           // Log the raw data for debugging
-           // console.log(`AdminPage onSnapshot: Processing doc ${doc.id}, Data:`, data);
-           if (data && (data.text !== undefined || data.text === null) && (data.submittedAt !== undefined || data.submittedAt === null)) {
-                // Add a default for text if it happens to be null/undefined
-                const prayerText = data.text ?? "No text submitted";
-                // Ensure submittedAt is a Timestamp or null
-                 const submittedAt = data.submittedAt instanceof Timestamp ? data.submittedAt : (data.submittedAt === null ? null : new Timestamp(0,0)); // Convert null or provide default if invalid
-                 // Log valid prayer data being pushed
-                 // console.log(`AdminPage onSnapshot: Adding prayer - ID: ${doc.id}, Text: ${prayerText}, Timestamp: ${submittedAt?.toDate() ?? 'null'}`);
-                prayersData.push({ id: doc.id, text: prayerText, submittedAt: submittedAt });
-           } else {
-               console.warn("AdminPage onSnapshot: Skipping document with missing data:", doc.id, data);
-           }
-        });
-        setPrayers(prayersData);
-        setLoadingPrayers(false); // Prayers loaded
-         console.log("AdminPage onSnapshot: Prayer state updated. Loading finished.");
-      }, (err) => {
-          // Handle errors from the snapshot listener
-          console.error("AdminPage onSnapshot Error: Failed to fetch prayers:", err);
-          let errorMessage = "Failed to load prayers. Please check your Firestore connection and permissions.";
-          // Check for permission denied errors specifically
-          if ((err as any).code === 'permission-denied') {
-               errorMessage = "Failed to load prayers: Permission Denied. Please check your Firestore Security Rules. Ensure the authenticated admin user has read access to the 'prayers' collection.";
-               // Log the tip internally, but set a user-friendly error message for the UI
-               // Use console.warn instead of console.error for tips
-               console.warn("Firestore Security Rules Tip: Ensure your rules allow reads for the authenticated admin user, e.g., `allow read: if request.auth != null && request.auth.token.email == 'YOUR_ADMIN_EMAIL';`");
-          }
-          setError(errorMessage); // Set the error state to display in the UI
-          setLoadingPrayers(false); // Stop loading even on error
-      });
-
-      // Cleanup listener on unmount or when user logs out/changes
-       console.log("AdminPage useEffect: Returning cleanup function for listener.");
-      return () => {
-         console.log("AdminPage useEffect Cleanup: Unsubscribing from Firestore listener.");
-         unsubscribe();
+      const fetchPrayersFromPrisma = async () => {
+        try {
+          const prayersData = await getPrayers();
+          setPrayers(Array.isArray(prayersData) ? prayersData : []);
+          setLoadingPrayers(false);
+          console.log("AdminPage useEffect: Prayers fetched successfully from Prisma. Loaded prayers:", Array.isArray(prayersData) ? prayersData.length : 0);
+        } catch (err: any) {
+          console.error("AdminPage useEffect: Failed to fetch prayers from Prisma:", err);
+          const errorMessage = "W9e3 ghalat f jib l d3awi men database. Vérifier connexion.";
+          setError(errorMessage);
+          toast({
+             title: "Ghalat f Jib Data!",
+             description: errorMessage,
+             variant: "destructive",
+             className: "toast-error",
+          });
+          setPrayers([]);
+          setLoadingPrayers(false);
+        }
       };
-    } else if (!authLoading) { // Only clear/reset if auth is done loading
+
+      fetchPrayersFromPrisma();
+
+    } else if (!authLoading) {
          console.log("AdminPage useEffect: User not logged in or not authorized admin. Clearing prayers and stopping loading.");
-         setPrayers([]); // Clear prayers if user logs out or is not the allowed admin
-         setLoadingPrayers(false); // Not loading if not logged in or not authorized
+         setPrayers([]);
+         setLoadingPrayers(false);
          if (user && user.email !== ALLOWED_ADMIN_EMAIL) {
-             // This case shouldn't happen if handleLogin works correctly, but as a fallback:
              console.warn(`AdminPage useEffect: Unauthorized user (${user.email}) detected after auth check. Forcing logout.`);
-             setError("Unauthorized access.");
-             handleLogout(); // Force logout if somehow an unauthorized user reaches here
+             handleLogout(); // Force logout
          }
      } else {
-         // Auth is still loading, do nothing yet
          console.log("AdminPage useEffect: Auth still loading...");
      }
-  }, [user, authLoading]); // Re-run effect when user or authLoading changes
-
+  }, [user, authLoading, toast]);
 
   // Loading state for authentication check
   if (authLoading) {
@@ -190,143 +287,181 @@ export default function AdminPage() {
      );
   }
 
-  // If user is not authenticated, show login button
+  // ENHANCED login card with stronger Moroccan challenge
   if (!user) {
-    console.log("AdminPage: User not authenticated. Displaying login card.");
+    console.log("AdminPage: User not authenticated. Displaying enhanced login card.");
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-background to-[hsl(var(--primary)/0.1)] p-4">
          <Card className="w-full max-w-md bg-card/90 backdrop-blur-sm border-border/50 shadow-xl">
              <CardHeader>
-                 <CardTitle className="text-2xl font-bold text-center text-primary">Admin Login</CardTitle>
+                 <CardTitle className="text-2xl font-bold text-center text-primary flex items-center justify-center gap-2">
+                     <Shield size={24} /> Zone Protégée: Admin
+                 </CardTitle>
                  <CardDescription className="text-center text-muted-foreground">
-                     Please sign in with the authorized Google account.
+                      Hadi hiya l'montaqa l'ma7miya. Ghir l'admin li 3endo l7a9 ydkhal!
                  </CardDescription>
              </CardHeader>
              <CardContent className="flex flex-col items-center gap-4">
+                 {/* Display general UI errors */}
                  {error && (
-                      // Use a more prominent error display for access denied or login failure
-                      error.startsWith("Access denied") ? (
-                           <p className="text-destructive text-sm text-center font-semibold flex items-center justify-center gap-1 p-2 bg-destructive/10 border border-destructive/30 rounded-md">
-                              <ShieldAlert size={16}/> {error}
-                           </p>
-                      ) : (
-                           <p className="text-destructive text-sm text-center flex items-center justify-center gap-1 p-2 bg-destructive/10 border border-destructive/30 rounded-md">
-                              <AlertTriangle size={16}/> {error}
-                           </p>
-                      )
-
+                      <p className={`text-sm text-center font-semibold flex items-center justify-center gap-1 p-2 rounded-md border ${error.startsWith("Accès interdit") ? 'bg-destructive/10 border-destructive/30 text-destructive' : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-600'}`}>
+                         {error.startsWith("Accès interdit") ? <ShieldAlert size={16}/> : <AlertTriangle size={16}/>} {error}
+                      </p>
                   )}
-                 <Button onClick={handleLogin} className="w-full bg-button-primary-gradient text-primary-foreground hover:opacity-90 shadow-md">
-                     <LogIn size={16} className="mr-2" /> Sign In with Google
-                 </Button>
+
+                {/* ENHANCED Challenge Dialog */}
+                <AlertDialog open={showChallenge} onOpenChange={setShowChallenge}>
+                     {/* The button that TRIGGERS the dialog */}
+                     <AlertDialogTrigger asChild>
+                        <Button onClick={handleLoginClick} className="w-full bg-button-primary-gradient text-primary-foreground hover:opacity-90 shadow-md">
+                             <Lock size={16} className="mr-2" /> Bab L'Admin (Zone Interdite)
+                        </Button>
+                     </AlertDialogTrigger>
+                     
+                     {/* The ENHANCED dialog CONTENT */}
+                     <AlertDialogContent className="bg-card/95 border-secondary shadow-lg">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-center text-2xl font-bold text-secondary flex items-center justify-center gap-2">
+                                <VenetianMask size={24} /> Bessah 3endek ma ted5el?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="text-center text-muted-foreground pt-2">
+                                Wa hadi blasa 5assa! Chkoun nta bezzaf 3lik? Ila ma3endeky ta salahiya, 
+                                sir f7alek 7san! Ila kan 3endek l7e9, goulna chnowa smitk!
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                         
+                         {/* Enhanced warning section */}
+                         <div className="bg-yellow-500/10 border border-yellow-500/40 rounded-md p-3 text-amber-600 text-sm mb-4">
+                            <p className="flex items-center gap-2">
+                              <AlertTriangle size={16} /> 
+                              <span className="font-semibold">T7dir! Ghi l'admin li kaysta7e9 ydkhal hna.</span>
+                            </p>
+                            <p className="mt-1 pl-6">Kula mo7awala massjla w ghatji 3likom, la tnsaw!</p>
+                         </div>
+                         
+                         {/* Challenge Form */}
+                         <form onSubmit={handleChallengeSubmit} className="space-y-4">
+                             <Input
+                                id="challengerName"
+                                type="text"
+                                placeholder="Smitk kamla, wach bessah nta l'admin?"
+                                value={challengerName}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setChallengerName(e.target.value)}
+                                required
+                                className="bg-input border-border focus:ring-primary focus:border-primary text-center font-semibold"
+                                aria-label="Challenger Name"
+                            />
+                            
+                            <div className="text-center text-sm text-muted-foreground">
+                              <p>Ghir l'admin li kaysta7e9 ydkhal. Lmochkil 3endek?</p>
+                              <p className="font-semibold text-secondary mt-1">
+                                L7a9 ma kayddi7ch! 3endna les preuves!
+                              </p>
+                            </div>
+                            
+                            <AlertDialogFooter className="pt-2">
+                                <AlertDialogCancel className="border-destructive/50 text-destructive hover:bg-destructive/10">
+                                  Llah ister, ghadi nemchi!
+                                </AlertDialogCancel>
+                                <Button
+                                    type="submit"
+                                    disabled={isSubmittingChallenge}
+                                    className="bg-button-dual text-accent-foreground hover:opacity-90"
+                                >
+                                    {isSubmittingChallenge ? <Loader size={16} className="mr-1 animate-spin"/> : <UserCheck size={16} className="mr-1"/>}
+                                    {isSubmittingChallenge ? "Kan vérifiw..." : "Ana Houwa L'Admin!"}
+                                </Button>
+                            </AlertDialogFooter>
+                        </form>
+                     </AlertDialogContent>
+                </AlertDialog>
              </CardContent>
          </Card>
       </div>
     );
   }
 
-   // This should theoretically not be reached if handleLogin forces logout, but handle it defensively.
+  // Defensive check: if somehow an unauthorized user gets past the login check
   if (user.email !== ALLOWED_ADMIN_EMAIL) {
-      console.warn(`AdminPage: Rendering reached with unauthorized user ${user.email}. Forcing logout and showing error.`);
-      //setError("Unauthorized access. Logging out."); // Set error message
-      handleLogout(); // Attempt logout
-      // Display a message indicating unauthorized access while logout proceeds.
-      // You might want a more robust loading or error state here.
+      console.warn(`AdminPage: Rendering reached with unauthorized user ${user.email}. Should have been logged out.`);
       return (
            <div className="flex flex-col items-center justify-center min-h-screen bg-destructive/10 p-4 text-destructive">
                <ShieldAlert size={48} className="mb-4" />
-               <p className="text-lg font-semibold">Unauthorized Access</p>
-               <p>You are not authorized to view this page. Logging out...</p>
-               {error && <p className="mt-2 text-sm">{error}</p>} {/* Show any specific error */}
+               <p className="text-lg font-semibold">Dkhoul Mamnou3!</p>
+               <p>Machi nta l'Admin.</p>
            </div>
       );
   }
 
-
-  // If user is authenticated AND is the allowed admin, show the admin dashboard
+  // Admin dashboard after successful login
   console.log("AdminPage: Authorized admin user authenticated. Displaying dashboard.");
   return (
-    // <AuthGuard> // AuthGuard can still be used, but the primary check is now email-based
       <div className="container mx-auto p-4 md:p-8 bg-gradient-to-br from-background to-[hsl(var(--primary)/0.1)] min-h-screen text-foreground">
         <div className="flex justify-between items-center mb-6 md:mb-10 pb-4 border-b border-border/30">
           <h1 className="text-3xl md:text-4xl font-bold text-primary flex items-center gap-2">
-             <LayoutDashboard size={28} className="text-secondary"/> Admin Dashboard {/* Replaced Prayer with LayoutDashboard */}
+             <LayoutDashboard size={28} className="text-secondary"/> Admin Dashboard
           </h1>
           <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground hidden md:inline">Logged in as {user.email}</span>
+              <span className="text-sm text-muted-foreground hidden md:inline">Mrhe7ba bik a {user.email}</span>
              <Button onClick={handleLogout} variant="outline" size="sm" className="border-destructive/50 text-destructive hover:bg-destructive/10">
-                <LogOut size={16} className="mr-1"/> Logout
+                <LogOut size={16} className="mr-1"/> Khrouj
              </Button>
           </div>
         </div>
 
-        {/* Display errors related to fetching data, specifically permission denied */}
+         {/* Display general errors (like data loading errors) */}
          {error && (
-              error.includes("Permission Denied") ? (
-                  <div className="mb-4 p-3 bg-destructive/10 border border-destructive/50 text-destructive rounded-md text-sm">
-                      <p className="font-semibold flex items-center gap-2"><AlertTriangle size={16}/> Permission Denied</p>
-                      <p className="mt-1">Could not load prayers. Please check your Firestore Security Rules in the Firebase Console.</p>
-                      <p className="mt-1 text-xs">Ensure the rule for the 'prayers' collection allows read access for authenticated users with the email: <strong>{ALLOWED_ADMIN_EMAIL}</strong>.</p>
-                      <p className="mt-1 text-xs">Example rule snippet: <code>match /prayers/{'{prayerId}'} {'{'} allow read: if request.auth != null &amp;&amp; request.auth.token.email == '{ALLOWED_ADMIN_EMAIL}'; {'}'}</code></p>
-                  </div>
-              ) : (
-                  <div className="mb-4 p-3 bg-destructive/10 border border-destructive/50 text-destructive rounded-md text-sm flex items-center gap-2">
-                      <AlertTriangle size={16}/> {error}
-                  </div>
-              )
+              <div className="mb-4 p-3 bg-destructive/10 border border-destructive/50 text-destructive rounded-md text-sm flex items-center gap-2">
+                 <AlertTriangle size={16}/> {error}
+              </div>
           )}
-
 
         <Card className="bg-card/90 border-border/50 shadow-lg backdrop-blur-sm">
             <CardHeader>
-                <CardTitle>Submitted Prayers (D3awi)</CardTitle>
-                 <CardDescription>Prayers submitted through the welcome overlay.</CardDescription>
+                <CardTitle>D3awi li Wslou</CardTitle>
+                 <CardDescription>D3awi li tsayfto men l'overlay.</CardDescription>
             </CardHeader>
             <CardContent>
                  <ScrollArea className="h-[60vh] md:h-[70vh] w-full rounded-md border border-border/30">
                     <Table>
                        <TableHeader className="sticky top-0 bg-card/80 backdrop-blur-md z-10">
                          <TableRow>
-                           <TableHead className="w-[70%] text-secondary">Prayer Text (Noss dyal Douaa)</TableHead>
-                           <TableHead className="text-right text-secondary">Submitted At (W9tach Tsifat)</TableHead>
+                           <TableHead className="w-[70%] text-secondary">Noss dyal Douaa</TableHead>
+                           <TableHead className="text-right text-secondary">W9tach Tsifat</TableHead>
                          </TableRow>
                        </TableHeader>
                        <TableBody>
                          {loadingPrayers ? (
-                            // Show Skeleton loaders while prayers are loading
                             Array.from({ length: 5 }).map((_, index) => (
                               <TableRow key={`skeleton-${index}`}>
                                 <TableCell><Skeleton className="h-4 w-full bg-muted/40" /></TableCell>
                                 <TableCell className="text-right"><Skeleton className="h-4 w-24 ml-auto bg-muted/40" /></TableCell>
                               </TableRow>
                             ))
-                         ) : Array.isArray(prayers) && prayers.length > 0 ? (
-                           prayers.map((prayer) => (
-                             <TableRow key={prayer.id} className="hover:bg-muted/20 transition-colors">
-                               {/* Add default value for prayer text if it's null/undefined */}
-                               <TableCell className="font-medium py-3">{prayer.text ?? 'N/A'}</TableCell>
-                               <TableCell className="text-right text-muted-foreground text-xs py-3">
-                                  {/* Ensure submittedAt is valid before formatting */}
-                                  {formatTimestamp(prayer.submittedAt)}
-                               </TableCell>
-                             </TableRow>
-                           ))
                          ) : (
-                           <TableRow>
-                             <TableCell colSpan={2} className="h-24 text-center text-muted-foreground">
-                               No prayers submitted yet.
-                             </TableCell>
-                           </TableRow>
+                            Array.isArray(prayers) && prayers.length > 0 ? (
+                               prayers.map((prayer) => (
+                                 <TableRow key={prayer.id} className="hover:bg-muted/20 transition-colors">
+                                   <TableCell className="font-medium py-3">{prayer.text ?? 'Ma kteb walou'}</TableCell>
+                                   <TableCell className="text-right text-muted-foreground text-xs py-3">
+                                      {formatDate(prayer.submittedAt)}
+                                   </TableCell>
+                                 </TableRow>
+                               ))
+                            ) : (
+                               <TableRow>
+                                 <TableCell colSpan={2} className="h-24 text-center text-muted-foreground">
+                                   Ba9i ma wslat ta chi d3iwa.
+                                 </TableCell>
+                               </TableRow>
+                            )
                          )}
                        </TableBody>
-                        {/* Check if prayers is an array before accessing length */}
-                        <TableCaption className="py-4">{loadingPrayers ? "Loading prayers..." : `Total Prayers: ${Array.isArray(prayers) ? prayers.length : 0}`}</TableCaption>
+                        <TableCaption className="py-4">{loadingPrayers ? "Kan telechargiw d3awi..." : `Total D3awi: ${Array.isArray(prayers) ? prayers.length : 0}`}</TableCaption>
                     </Table>
                  </ScrollArea>
             </CardContent>
         </Card>
-
       </div>
-    // </AuthGuard>
   );
 }

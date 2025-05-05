@@ -1,3 +1,5 @@
+'use server';
+
 import prisma from '@/lib/prisma'; // Correct import path for Prisma client
 import { v4 as uuidv4 } from 'uuid';
 import { add } from 'date-fns';
@@ -80,3 +82,4 @@ export async function acceptInvitation(token: string) {
       throw new Error('Failed to accept invitation.');
     }
   }
+
