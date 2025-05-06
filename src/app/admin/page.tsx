@@ -322,7 +322,7 @@ export default function AdminPage() {
                      <AlertDialogContent className="bg-card/95 border-secondary shadow-lg">
                         <AlertDialogHeader>
                             <AlertDialogTitle className="text-center text-2xl font-bold text-secondary flex items-center justify-center gap-2">
-                                <VenetianMask size={24} /> Bessah 3endek ma ted5el?
+                                <VenetianMask size={24} /> Bessah Neta Hewa Admin?
                             </AlertDialogTitle>
                             <AlertDialogDescription className="text-center text-muted-foreground pt-2">
                                 Wa hadi blasa 5assa! Chkoun nta bezzaf 3lik? Ila ma3endeky ta salahiya, 
@@ -336,7 +336,7 @@ export default function AdminPage() {
                               <AlertTriangle size={16} /> 
                               <span className="font-semibold">T7dir! Ghi l'admin li kaysta7e9 ydkhal hna.</span>
                             </p>
-                            <p className="mt-1 pl-6">Kula mo7awala massjla w ghatji 3likom, la tnsaw!</p>
+                            <p className="mt-1 pl-6">Kula mo7awala massjla w ghatji 3lik, la tnsa!</p>
                          </div>
                          
                          {/* Challenge Form */}
@@ -352,16 +352,10 @@ export default function AdminPage() {
                                 aria-label="Challenger Name"
                             />
                             
-                            <div className="text-center text-sm text-muted-foreground">
-                              <p>Ghir l'admin li kaysta7e9 ydkhal. Lmochkil 3endek?</p>
-                              <p className="font-semibold text-secondary mt-1">
-                                L7a9 ma kayddi7ch! 3endna les preuves!
-                              </p>
-                            </div>
                             
                             <AlertDialogFooter className="pt-2">
                                 <AlertDialogCancel className="border-destructive/50 text-destructive hover:bg-destructive/10">
-                                  Llah ister, ghadi nemchi!
+                                  Safi, ghadi nemchi!
                                 </AlertDialogCancel>
                                 <Button
                                     type="submit"
@@ -426,7 +420,7 @@ export default function AdminPage() {
                     <Table>
                        <TableHeader className="sticky top-0 bg-card/80 backdrop-blur-md z-10">
                          <TableRow>
-                           <TableHead className="w-[70%] text-secondary">Noss dyal Douaa</TableHead>
+                           <TableHead className="w-[70%] text-secondary">Nass dyal Douaa</TableHead>
                            <TableHead className="text-right text-secondary">W9tach Tsifat</TableHead>
                          </TableRow>
                        </TableHeader>

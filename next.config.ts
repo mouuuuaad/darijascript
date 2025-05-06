@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    domains: ['i.ibb.co'],
     remotePatterns: [
       {
         protocol: 'https',
@@ -18,6 +19,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+
 };
 
 export default nextConfig;

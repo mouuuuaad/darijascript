@@ -883,5 +883,3 @@ export function parse(tokens: Token[]): ASTNode {
   const parser = new Parser(tokens);
   return parser.parse();
 }
-
-

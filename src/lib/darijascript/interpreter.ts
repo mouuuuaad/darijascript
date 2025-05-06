@@ -1459,5 +1459,3 @@ export function interpret(code: string): { output: string[], error?: string } {
     return { output: output, error: `Ghalat System: ${errorMessage}` };
   }
 }
-
-

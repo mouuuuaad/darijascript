@@ -10,7 +10,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { CodeBlock } from '@/components/docs/code-block'; // Assuming CodeBlock is updated or works with new classes
-import { Badge } from "@/components/ui/badge";
 import { BookOpenText, Lightbulb, TerminalSquare, Workflow, Braces, ListChecks, Clock, AlertTriangle, KeySquare } from 'lucide-react'; // Icons for categories
 
 interface DocEntry {
@@ -186,7 +185,6 @@ export function DarijaDocs() {
                     <div key={entry.darija} className="doc-entry">
                        <div className="doc-entry-header">
                          <span className="doc-entry-darija">{entry.darija}</span>
-                         {entry.english && <Badge variant="secondary" className="doc-entry-english">{entry.english}</Badge>}
                       </div>
                       <p className="doc-entry-description">{entry.description}</p>
                       {entry.usageNotes && (
@@ -203,8 +201,8 @@ export function DarijaDocs() {
             </AccordionContent>
           </AccordionItem>
         ))}
-         <div className="creator-credit">
-            Developed by <a href="https://github.com/MOUAADIDO" target="_blank" rel="noopener noreferrer" className="creator-name">MOUAAD IDOUFKIR</a>
+         <div className="creator-credit ">
+            Developed by <a href="https://mouaad-idoufkir.vercel.app/" target="_blank" rel="noopener noreferrer" className="creator-name">MOUAAD IDOUFKIR</a>
         </div>
       </Accordion>
     </div>

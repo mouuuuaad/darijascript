@@ -22,10 +22,8 @@ import { gsap } from 'gsap';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
@@ -50,16 +48,54 @@ import {
   Trash,
   KeyRound,
   Zap,
-  X,
-  Menu,
-  ChevronDown,
-  LayoutGrid
-} from 'lucide-react';
+  X,} from 'lucide-react';
+import Image from "next/image";
 
 const initialCode = `
 // Salam! Ktbo l code dyalkom hna
 
-tbe3("DarijaScript is running!");
+
+// Mithal l function li kat7seb l factorial dyal wa7ed l raqam 
+
+dala factorial(n) {
+ila (n < 0) {
+  rmmi("Factoriel ma kayench l raqam salib.");
+}
+ila (n === 0 || n === 1) {
+  rj3 1;
+}
+bdl result = 1;
+douz (bdl i = 2; i <= n; i = i + 1) {
+  result = result * i;
+}
+rj3 result;
+}
+
+bdl num = 5;
+jrb {
+  bdl fact = factorial(num);
+  tbe3("Factoriel dyal " + num + " houwa: " + fact); // Output: 120
+} msk(e) {
+  ghlat(e);
+}
+
+
+
+// Made with ♥ by MOUAAD IDOUFKIR 
+/*
+============================================================================================
+
+███╗░░░███╗░█████╗░██╗░░░██╗░█████╗░░█████╗░██████╗░    ██╗██████╗░
+████╗░████║██╔══██╗██║░░░██║██╔══██╗██╔══██╗██╔══██╗    ██║██╔══██╗
+██╔████╔██║██║░░██║██║░░░██║███████║███████║██║░░██║    ██║██║░░██║
+██║╚██╔╝██║██║░░██║██║░░░██║██╔══██║██╔══██║██║░░██║    ██║██║░░██║
+██║░╚═╝░██║╚█████╔╝╚██████╔╝██║░░██║██║░░██║██████╔╝    ██║██████╔╝
+╚═╝░░░░░╚═╝░╚════╝░░╚═════╝░╚═╝░░╚═╝╚═╝░░╚═╝╚═════╝░░░░░╚═╝╚═════╝░
+       
+======    ========
+𝒜𝓁𝓁𝒶𝒽 𝓎𝓌𝒶𝒻9𝓀ℴ𝓂!
+============================================================================================
+*/
 `;
 
 // Sample snippets for the snippets library
@@ -311,7 +347,7 @@ const HomePage = () => {
       setIsSaved(true);
 
       toast({
-        title: "Code Saved!",
+        title: "lcode dyalek rah save nah lek!",
         description: "Your progress has been automatically saved.",
         className: "toast-autosave"
       });
@@ -556,18 +592,32 @@ const HomePage = () => {
 
       {/* Top Header */}
       <header ref={titleRef} className="p-3 border-b border-border/20 shadow-sm flex-shrink-0 flex justify-between items-center">
-        <div className="flex items-center">
-          <h1 className="text-2xl font-bold tracking-wide">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">DarijaScript IDE</span> ✨
-          </h1>
-        </div>
+      <div className="flex items-center gap-3">
+      {/* Logo space */}
+      <div className="w-8 h-8 flex-shrink-0">
+        <Image
+          src="https://i.ibb.co/6VCTh2G/DS.png" 
+          width={52}
+          height={52}
+          alt="DarijaScript Logo" 
+          className="object-contain"
+        />
+      </div>
+      
+      {/* Title */}
+      <h1 className="text-2xl font-bold tracking-wide">
+        <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF3333] to-[#00A651]">
+          DarijaScript
+        </span> ✨
+      </h1>
+    </div>
         
         <div className="flex items-center gap-2">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={toggleTheme}
-            className="text-muted-foreground hover:text-primary transition-colors"
+            className="text-muted-foreground hover:text-primary-foreground transition-colors"
           >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </Button>
@@ -577,7 +627,7 @@ const HomePage = () => {
               <Button 
                 variant="ghost" 
                 size="icon"
-                className="text-muted-foreground hover:text-primary transition-colors"
+                className="text-muted-foreground hover:text-primary-foreground transition-colors"
               >
                 <Settings size={18} />
               </Button>
@@ -758,120 +808,6 @@ const HomePage = () => {
                       />
                     </SheetContent>
                   </Sheet>
-                  
-                  {/* Code Snippets Button */}
-                  <Sheet open={snippetsSidebarOpen} onOpenChange={setSnippetsSidebarOpen}>
-                    <SheetTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-primary/50 text-primary hover:bg-primary/10 hover:text-primary focus:ring-primary/50"
-                      >
-                        <Code size={16} className="mr-1" /> Snippets
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-80 p-0 border-r border-border/30 bg-sidebar">
-                      <div className="flex flex-col h-full">
-                        <div className="p-4 border-b border-border/30 flex justify-between items-center">
-                          <h2 className="text-lg font-semibold">Code Snippets</h2>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => setIsCreatingSnippet(!isCreatingSnippet)}
-                          >
-                            {isCreatingSnippet ? <X size={18} /> : <Plus size={18} />}
-                          </Button>
-                        </div>
-                        
-                        {isCreatingSnippet && (
-                          <div className="p-4 border-b border-border/30 bg-card/50">
-                            <div className="space-y-3">
-                              <div>
-                                <Label htmlFor="snippetName">Snippet Name</Label>
-                                <Input 
-                                  id="snippetName" 
-                                  value={newSnippetName} 
-                                  onChange={(e) => setNewSnippetName(e.target.value)}
-                                  placeholder="Enter snippet name"
-                                  className="mt-1"
-                                />
-                              </div>
-                              <div>
-                                <Label htmlFor="snippetDesc">Description (Optional)</Label>
-                                <Input 
-                                  id="snippetDesc" 
-                                  value={newSnippetDesc} 
-                                  onChange={(e) => setNewSnippetDesc(e.target.value)}
-                                  placeholder="Brief description"
-                                  className="mt-1"
-                                />
-                              </div>
-                              <Button 
-                                onClick={addSnippet} 
-                                className="w-full"
-                                disabled={!newSnippetName.trim()}
-                              >
-                                <Bookmark size={14} className="mr-1" /> Save Snippet
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                        
-                        <div className="flex-grow overflow-y-auto p-2">
-                          {snippets.length === 0 ? (
-                            <div className="text-center p-6 text-muted-foreground">
-                              No snippets saved yet. Create your first snippet!
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              {snippets.map((snippet) => (
-                                <div 
-                                  key={snippet.id}
-                                  className="border border-border/40 rounded-md p-3 bg-card/40 hover:bg-card/70 transition-colors"
-                                >
-                                  <div className="flex justify-between items-start mb-1">
-                                    <h3 className="font-medium">{snippet.name}</h3>
-                                    <div className="flex gap-1">
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-7 w-7" 
-                                        onClick={() => copySnippet(snippet.code)}
-                                      >
-                                        <Clipboard size={14} />
-                                      </Button>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-7 w-7 text-destructive hover:bg-destructive/10" 
-                                        onClick={() => deleteSnippet(snippet.id)}
-                                      >
-                                        <Trash size={14} />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground mb-2">{snippet.description}</p>
-                                  <pre className="text-xs bg-background/50 p-2 rounded-sm overflow-x-auto max-h-24">
-                                    {snippet.code.length > 100 
-                                      ? snippet.code.substring(0, 100) + '...' 
-                                      : snippet.code}
-                                  </pre>
-                                  <Button 
-                                    variant="secondary" 
-                                    size="sm" 
-                                    className="w-full mt-2" 
-                                    onClick={() => loadSnippet(snippet.code)}
-                                  >
-                                    <Plus size={14} className="mr-1" /> Insert Code
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </SheetContent>
-                  </Sheet>
                 </div>
                 
                 {/* Status Indicators */}
@@ -932,36 +868,36 @@ const HomePage = () => {
             </div>
           </ResizablePanel>
           
-          <ResizableHandle withHandle />
+          <ResizableHandle className="mx-2" withHandle />
           
           {/* Output Panel */}
           <ResizablePanel defaultSize={40} minSize={20}>
-            <div ref={outputRef} className="flex flex-col h-full bg-card rounded-lg shadow-lg border border-border/20 overflow-hidden">
-              <div className="p-3 border-b border-border/30 bg-[hsl(var(--card-foreground)/5)] flex items-center justify-between">
-                <h2 className="font-semibold">Output Console</h2>
+            <div ref={outputRef} className="flex flex-col h-full dark:bg-card rounded-lg shadow-lg border border-border/20">
+              <div className="p-3 border-b border-border/20 bg-transparent flex items-center justify-between">
+                <h2 className="font-semibold text-black dark:text-white">Output Console</h2>
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                  className="h-7 w-7 text-muted-foreground hover:text-primary-foreground"
                   onClick={() => setOutput([])}
                 >
                   <RefreshCw size={16} />
                 </Button>
               </div>
-              <div className="flex-grow p-4 overflow-auto bg-output font-mono text-sm">
+              <div className="flex-grow p-4 overflow-auto dark:bg-output font-mono text-sm">
                 {output.length === 0 ? (
                   <div className="text-muted-foreground text-center py-8">
                     <div className="flex flex-col items-center gap-3">
                       <Zap size={24} className="opacity-50" />
                       <p>Run your code to see output here!</p>
-                      <p className="text-xs opacity-50">Press Ctrl+Enter to run</p>
+                      <p className="text-xs dark:opacity-50">Press Ctrl+Enter to run</p>
                     </div>
                   </div>
                 ) : (
                   output.map((line, index) => (
                     <div 
                       key={index} 
-                      className={`output-line mb-1 ${
+                      className={`output-line text-black dark:text-white mb-1 ${
                         line.startsWith('Ghalat!:') ? 'text-destructive' : ''
                       }`}
                     >
@@ -974,9 +910,10 @@ const HomePage = () => {
           </ResizablePanel>
         </ResizablePanelGroup>
         
-        {/* Mobile Layout (small screens) */}
-        <div className="md:hidden flex flex-col h-full">
-          <div className="flex justify-between items-center mb-2">
+        {/* Mobile Layout (small screens) - Fixed to show editor on top and output on bottom */}
+        <div className="md:hidden flex flex-col h-full gap-2">
+          {/* Mobile Toolbar */}
+          <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -985,15 +922,6 @@ const HomePage = () => {
                 className="text-xs"
               >
                 <Brain size={14} className="mr-1" /> Algorithms
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSnippetsSidebarOpen(true)}
-                className="text-xs"
-              >
-                <Code size={14} className="mr-1" /> Snippets
               </Button>
               
               <Dialog>
@@ -1014,35 +942,40 @@ const HomePage = () => {
               </Dialog>
             </div>
             
+            {/* Run Button */}
             <Button
-              variant="secondary"
+              onClick={handleRunClick}
+              disabled={isRunning}
+              className="bg-button-primary-gradient text-primary-foreground hover:opacity-90 transition-opacity shadow-sm"
               size="sm"
-              onClick={toggleMobileView}
-              className="text-xs"
             >
-              {mobileView === 'editor' ? 'Show Output' : 'Show Editor'}
+              {isRunning ? 
+                <Loader size={16} className="mr-1 animate-spin"/> : 
+                <Play size={16} className="mr-1"/>
+              }
+              {isRunning ? 'Running...' : 'Run Code'}
             </Button>
           </div>
           
-          <div className="flex-grow overflow-hidden">
-            {/* Editor */}
-            <div className={`h-full ${mobileView === 'editor' ? 'block' : 'hidden'}`}>
-              <div className="flex flex-col h-full bg-card rounded-lg shadow-lg border border-border/20 overflow-hidden">
+          {/* Editor - Fixed at top for mobile */}
+          <div className="flex-grow flex flex-col h-full">
+            {/* Editor Container - Takes 60% of height */}
+            <div className="h-3/5 mb-2">
+              <div className="h-full bg-card rounded-lg shadow-lg border border-border/20 overflow-hidden">
                 <div className="p-2 border-b border-border/30 bg-[hsl(var(--card-foreground)/5)] flex items-center justify-between">
-                  <Button
-                    onClick={handleRunClick}
-                    disabled={isRunning}
-                    className="bg-button-primary-gradient text-primary-foreground hover:opacity-90 transition-opacity shadow-sm w-full"
-                    size="sm"
-                  >
-                    {isRunning ? 
-                      <Loader size={16} className="mr-1 animate-spin"/> : 
-                      <Play size={16} className="mr-1"/>
-                    }
-                    {isRunning ? 'Running...' : 'Run Code'}
-                  </Button>
+                  <h2 className="font-semibold text-sm">Editor</h2>
+                  {isSaving && (
+                    <span className="flex items-center text-xs text-muted-foreground">
+                      <Loader size={14} className="animate-spin text-primary mr-1"/> Saving...
+                    </span>
+                  )}
+                  {isSaved && !isSaving && (
+                    <span className="flex items-center text-xs text-muted-foreground">
+                      <Check size={14} className="text-secondary mr-1"/> Saved
+                    </span>
+                  )}
                 </div>
-                <div className="flex-grow relative overflow-hidden">
+                <div className="h-full relative overflow-hidden">
                   <Editor
                     height="100%"
                     defaultLanguage="darijascript"
@@ -1065,9 +998,9 @@ const HomePage = () => {
               </div>
             </div>
             
-            {/* Output */}
-            <div className={`h-full ${mobileView === 'output' ? 'block' : 'hidden'}`}>
-              <div className="flex flex-col h-full bg-card rounded-lg shadow-lg border border-border/20 overflow-hidden">
+            {/* Output Container - Takes 40% of height */}
+            <div className="h-2/5">
+              <div className="h-full bg-card rounded-lg shadow-lg border border-border/20 overflow-hidden">
                 <div className="p-2 border-b border-border/30 bg-[hsl(var(--card-foreground)/5)] flex items-center justify-between">
                   <h2 className="font-semibold text-sm">Output Console</h2>
                   <Button 
@@ -1079,11 +1012,11 @@ const HomePage = () => {
                     <RefreshCw size={16} />
                   </Button>
                 </div>
-                <div className="flex-grow p-3 overflow-auto bg-output font-mono text-sm">
+                <div className="flex-grow h-full p-3 overflow-auto bg-output font-mono text-sm">
                   {output.length === 0 ? (
-                    <div className="text-muted-foreground text-center py-8">
-                      <div className="flex flex-col items-center gap-3">
-                        <Zap size={24} className="opacity-50" />
+                    <div className="text-muted-foreground text-center py-4">
+                      <div className="flex flex-col items-center gap-2">
+                        <Zap size={20} className="opacity-50" />
                         <p>Run your code to see output here!</p>
                       </div>
                     </div>
@@ -1105,6 +1038,9 @@ const HomePage = () => {
           </div>
         </div>
       </main>
+      <div className="creator-credit my-2 text-lg">
+            Developed by <a href="https://mouaad-idoufkir.vercel.app/" target="_blank" rel="noopener noreferrer" className="creator-name">MOUAAD IDOUFKIR</a>
+        </div>
     </div>
   );
 };

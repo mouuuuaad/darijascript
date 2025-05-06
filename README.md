@@ -75,7 +75,7 @@ Output appears in the console area
 
 🧑‍💻 Author
 Mouaad Idoufkir
-Frontend Developer | UI/UX Designer | Math & Physics Student
+Software Developer | UI/UX Designer |
 📍 Morocco 🇲🇦 | 🌐 Passionate about AI, Education & Technology
 📧 Contact: mouaadidoufkir2@gmail.com
 

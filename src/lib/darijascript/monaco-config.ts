@@ -385,6 +385,3 @@ export function setupDarijaScriptLanguage(monaco: typeof monacoEditor) {
 
     console.log(`DarijaScript language (${languageId}) configured for Monaco.`);
 }
-
-
-

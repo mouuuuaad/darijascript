@@ -1,5 +1,5 @@
 
-'use client';
+"use client";
 
 import { type FunctionComponent, useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
@@ -161,7 +161,7 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
                    ref={prayerInputRef}
                    id="prayerInput"
                    type="text"
-                   placeholder="Lah ysehel 3lik khoya Moad..."
+                   placeholder="Kteb D3iwa Dylek Hena..."
                    value={prayer}
                    onChange={(e) => setPrayer(e.target.value)}
                    disabled={isSubmitting}
@@ -204,7 +204,7 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
            </div>
 
            <p className="mt-10 text-xs text-muted-foreground/70">
-              Made by <a href="https://github.com/MOUAADIDO" target="_blank" rel="noopener noreferrer" className="font-semibold text-secondary hover:text-primary transition-colors">MOUAAD IDOUFKIR</a> - Passionate Fullstack Developer
+              Made by <a href="https://mouaad-idoufkir.vercel.app/" target="_blank" rel="noopener noreferrer" className="font-semibold text-secondary hover:text-primary transition-colors">MOUAAD IDOUFKIR</a> - Passionate Fullstack Developer
            </p>
          </div>
       </div>
