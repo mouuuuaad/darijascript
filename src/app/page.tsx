@@ -917,7 +917,7 @@ const HomePage = () => {
        
         
         {/* Mobile Layout (small screens) - Fixed to show editor on top and output on bottom */}
-        <div className="md:hidden my-2 flex flex-col h-full gap-2">
+        <div className="md:hidden mt-2 flex flex-col h-full gap-2">
           {/* Mobile Toolbar */}
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-7">
@@ -1020,9 +1020,9 @@ const HomePage = () => {
                     <RefreshCw size={16} />
                   </Button>
                 </div>
-                <div className="flex-grow h-full p-3 overflow-auto bg-white dark:bg-primary-foreground font-mono text-sm">
+                <div className="flex-grow h-full pb-12 pt-2 px-2 overflow-auto bg-white dark:bg-primary-foreground font-mono text-sm">
                   {output.length === 0 ? (
-                    <div className="text-muted-foreground text-center py-4">
+                    <div className="text-muted-foreground text-center py-8">
                       <div className="flex flex-col items-center gap-2">
                         <Zap size={20} className="opacity-50" />
                         <p>Run your code to see output here!</p>
