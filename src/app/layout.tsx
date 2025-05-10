@@ -32,11 +32,11 @@ export const metadata: Metadata = {
     'Made in Morocco',
   ],
   authors: [
-    { name: 'MOUAAD IDOUFKIR', url: 'https://github.com/mouuuuaad' }, // bddl link ila bghiti
+    { name: 'MOUAAD IDOUFKIR', url: 'https://github.com/mouuuuaad' },
   ],
   openGraph: {
     title: 'DarijaScript IDE',
-    description: 'Code b Darija. T3allem programming blkhef!',
+    description: 'Code b Darija. T3allem programming blkhef! | Created by Mouaad Idoufkir',
     url: '', // bddl l link ila 3andk
     siteName: 'DarijaScript IDE',
     images: [

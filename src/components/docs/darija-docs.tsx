@@ -201,9 +201,10 @@ export function DarijaDocs() {
             </AccordionContent>
           </AccordionItem>
         ))}
-         <div className="creator-credit ">
-            Developed by <a href="https://mouaad-idoufkir.vercel.app/" target="_blank" rel="noopener noreferrer" className="creator-name">MOUAAD IDOUFKIR</a>
+        <div className="creator-credit text-lg">
+          Created, developed, and built by <a href="tel:+212721009527" target="_blank" rel="noopener noreferrer" className="creator-name">MOUAAD IDOUFKIR</a>
         </div>
+
       </Accordion>
     </div>
   );

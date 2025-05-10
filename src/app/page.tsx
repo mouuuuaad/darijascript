@@ -605,10 +605,11 @@ const HomePage = () => {
       </div>
       
       {/* Title */}
-      <h1 className="text-2xl font-bold tracking-wide">
+      <h1 className="text-2xl relative font-bold tracking-wide">
         <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF3333] to-[#00A651]">
           DarijaScript
-        </span> ✨
+        </span>
+        <span className="absolute z-50 dark:bg-green-600/30 border-2 bg-green-600/80 text-green-950 dark:text-white backdrop-blur-md border-green-600 px-2 py-0.5 text-xs -top-3 -right-18 rounded-full">Beta</span>
       </h1>
     </div>
         
@@ -748,12 +749,13 @@ const HomePage = () => {
       </header>
 
       {/* Main Content */}
-      <main ref={editorSectionRef} className="flex-grow overflow-hidden p-2 md:p-4">
+      <main ref={editorSectionRef} className="flex-grow overflow-auto p-2 md:p-4">
         {/* Desktop Layout (md and up) */}
-        <ResizablePanelGroup direction="horizontal" className="h-full hidden md:flex">
+        <div className=" h-[100vh] hidden md:flex">
+        <ResizablePanelGroup direction="horizontal" className="h-full hidden lg:flex">
           {/* Editor Panel */}
           <ResizablePanel defaultSize={60} minSize={30}>
-            <div className="flex flex-col h-full bg-card rounded-lg shadow-lg border border-border/20 overflow-hidden">
+            <div className="flex flex-col h-full dark:bg-card rounded-lg shadow-lg border border-border/20 overflow-hidden">
               {/* Editor Header */}
               <div className="flex items-center justify-between p-3 border-b border-border/30 bg-[hsl(var(--card)-foreground)/5] text-card-foreground flex-shrink-0">
                 <div className="flex items-center gap-2">
@@ -777,9 +779,10 @@ const HomePage = () => {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="border-secondary/50 text-secondary hover:bg-secondary/10 hover:text-secondary focus:ring-secondary/50"
+                        className="border-secondary/50 relative text-secondary dark:hover:bg-secondary/10 dark:hover:text-secondary focus:ring-secondary/50"
                       >
                         <BookOpen size={16} className="mr-1" /> Docs
+                          <span className="absolute z-50 dark:bg-green-600/30 border-2 bg-green-600/80 text-green-950 dark:text-white backdrop-blur-md border-green-600 px-2 py-0.5 text-xs -top-3 -right-5 rounded-full">new</span>
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0">
@@ -795,9 +798,10 @@ const HomePage = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-accent/50 text-accent hover:bg-accent/10 hover:text-accent focus:ring-accent/50"
+                        className="border-accent/50 ml-4 relative text-accent dark:hover:bg-accent/10 dark:hover:text-accent focus:ring-accent/50"
                       >
                         <Brain size={16} className="mr-1" /> Algorithms
+                        <span className="absolute z-50 dark:bg-green-600/30 border-2 bg-green-600/80 text-green-950 dark:text-white backdrop-blur-md border-green-600 px-2 py-0.5 text-xs -top-3 -right-5 rounded-full">new</span>
                       </Button>
                     </SheetTrigger>
                     <SheetContent side="left" className="w-80 p-0 border-r border-border/30 bg-sidebar">
@@ -813,7 +817,7 @@ const HomePage = () => {
                 {/* Status Indicators */}
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {autoRun && (
-                    <span className="flex items-center text-secondary">
+                    <span className="flex items-center text-sm text-primary">
                       <Zap size={12} className="mr-1" /> Auto-run
                     </span>
                   )}
@@ -828,7 +832,7 @@ const HomePage = () => {
                     </span>
                   )}
                   {!isSaving && !isSaved && (
-                    <span className="opacity-50">Auto-save active</span>
+                    <span className="text-sm">Auto-save active</span>
                   )}
                 </div>
               </div>
@@ -909,19 +913,22 @@ const HomePage = () => {
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>
+        </div>
+       
         
         {/* Mobile Layout (small screens) - Fixed to show editor on top and output on bottom */}
-        <div className="md:hidden flex flex-col h-full gap-2">
+        <div className="md:hidden my-2 flex flex-col h-full gap-2">
           {/* Mobile Toolbar */}
           <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-7">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setAlgorithmsSidebarOpen(true)}
-                className="text-xs"
+                className="text-xs relative"
               >
                 <Brain size={14} className="mr-1" /> Algorithms
+                <span className="absolute z-50 dark:bg-green-600/30 border-2 bg-green-600/80 text-green-950 dark:text-white backdrop-blur-md border-green-600 px-2 py-0.5 text-xs -top-3 -right-5 rounded-full">new</span>
               </Button>
               
               <Dialog>
@@ -929,9 +936,10 @@ const HomePage = () => {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    className="text-xs"
+                    className="text-xs relative"
                   >
                     <BookOpen size={14} className="mr-1" /> Docs
+                    <span className="absolute z-50 dark:bg-green-600/30 border-2 bg-green-600/80 text-green-950 dark:text-white backdrop-blur-md border-green-600 px-2 py-0.5 text-xs -top-3 -right-5 rounded-full">new</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="h-[95vh] flex flex-col p-0">
@@ -960,10 +968,10 @@ const HomePage = () => {
           {/* Editor - Fixed at top for mobile */}
           <div className="flex-grow flex flex-col h-full">
             {/* Editor Container - Takes 60% of height */}
-            <div className="h-3/5 mb-2">
-              <div className="h-full bg-card rounded-lg shadow-lg border border-border/20 overflow-hidden">
-                <div className="p-2 border-b border-border/30 bg-[hsl(var(--card-foreground)/5)] flex items-center justify-between">
-                  <h2 className="font-semibold text-sm">Editor</h2>
+            <div className="h-[60%] mb-2">
+              <div className="h-full bg-card rounded-lg shadow-lg border-2 border-primary/20 overflow-hidden">
+                <div className="p-2 border-3 border-b dark:border-primary/30 bg-white dark:bg-primary-foreground flex items-center justify-between">
+                  <h2 className="font-semibold text-black dark:text-white text-sm">Editor</h2>
                   {isSaving && (
                     <span className="flex items-center text-xs text-muted-foreground">
                       <Loader size={14} className="animate-spin text-primary mr-1"/> Saving...
@@ -999,20 +1007,20 @@ const HomePage = () => {
             </div>
             
             {/* Output Container - Takes 40% of height */}
-            <div className="h-2/5">
-              <div className="h-full bg-card rounded-lg shadow-lg border border-border/20 overflow-hidden">
-                <div className="p-2 border-b border-border/30 bg-[hsl(var(--card-foreground)/5)] flex items-center justify-between">
-                  <h2 className="font-semibold text-sm">Output Console</h2>
+            <div className="h-[60%] py-2">
+              <div className="h-full bg-card rounded-lg shadow-lg border-2 border-secondary/20 overflow-hidden">
+                <div className="p-2 bg-white dark:bg-primary-foreground border-b border-secondary/30 flex items-center justify-between">
+                  <h2 className="font-semibold text-black dark:text-white text-sm">Output Console</h2>
                   <Button 
                     variant="ghost" 
                     size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                    className="h-7 w-7 text-muted-foreground hover:text-secondary-foreground"
                     onClick={() => setOutput([])}
                   >
                     <RefreshCw size={16} />
                   </Button>
                 </div>
-                <div className="flex-grow h-full p-3 overflow-auto bg-output font-mono text-sm">
+                <div className="flex-grow h-full p-3 overflow-auto bg-white dark:bg-primary-foreground font-mono text-sm">
                   {output.length === 0 ? (
                     <div className="text-muted-foreground text-center py-4">
                       <div className="flex flex-col items-center gap-2">
@@ -1024,11 +1032,11 @@ const HomePage = () => {
                     output.map((line, index) => (
                       <div 
                         key={index} 
-                        className={`output-line mb-1 ${
+                        className={`output-line text-black dark:text-white mb-1 ${
                           line.startsWith('Ghalat!:') ? 'text-destructive' : ''
                         }`}
-                      >
-                        {line}
+                      > <p>{line}</p>
+                        
                       </div>
                     ))
                   )}
@@ -1038,9 +1046,9 @@ const HomePage = () => {
           </div>
         </div>
       </main>
-      <div className="creator-credit my-2 text-lg">
-            Developed by <a href="https://mouaad-idoufkir.vercel.app/" target="_blank" rel="noopener noreferrer" className="creator-name">MOUAAD IDOUFKIR</a>
-        </div>
+       <div className="creator-credit py-2 text-base md:text-lg">
+       Created, developed, and built by <a href="tel:+212721009527" target="_blank" rel="noopener noreferrer" className="creator-name">MOUAAD IDOUFKIR</a>
+     </div>
     </div>
   );
 };
