@@ -159,10 +159,10 @@ const HomePage = () => {
   const [theme, setTheme] = useState('dark');
   const [autoRun, setAutoRun] = useState(false);
   const [autoRunDelay, setAutoRunDelay] = useState(1000);
-  const [fontSize, setFontSize] = useState(14);
+  const [fontSize, setFontSize] = useState(16);
   const [wordWrap, setWordWrap] = useState(true);
   const [minimap, setMinimap] = useState(true);
-  const [lineNumbers, setLineNumbers] = useState(true);
+  const [lineNumbers, setLineNumbers] = useState(false);
   const [snippets, setSnippets] = useState(initialSnippets);
   const [newSnippetName, setNewSnippetName] = useState('');
   const [newSnippetDesc, setNewSnippetDesc] = useState('');
@@ -917,7 +917,7 @@ const HomePage = () => {
        
         
         {/* Mobile Layout (small screens) - Fixed to show editor on top and output on bottom */}
-        <div className="md:hidden mt-2 flex flex-col h-full gap-2">
+        <div className="md:hidden my-2 flex flex-col h-full gap-2">
           {/* Mobile Toolbar */}
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-7">
@@ -999,7 +999,13 @@ const HomePage = () => {
                       lineNumbers: lineNumbers ? 'on' : 'off',
                       scrollBeyondLastLine: false,
                       automaticLayout: true,
-                      tabSize: 2,
+                      tabSize: 2 ,
+                      formatOnPaste: true,
+                      formatOnType: true,
+                      cursorBlinking: 'smooth',
+                      smoothScrolling:true,
+                      dragAndDrop:true,
+                      contextmenu:true,
                     }}
                   />
                 </div>
