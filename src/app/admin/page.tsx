@@ -61,8 +61,8 @@ const formatDate = (date: Date | null): string => {
   }
 };
 
-const ALLOWED_ADMIN_EMAIL = "mouaadidoufkir2@gmail.com";
-const FAILED_ATTEMPTS_LIMIT = 3; // Set a limit for failed challenge attempts
+const ALLOWED_ADMIN_EMAILS = ["mouaadidoufkir2@gmail.com", "azddoumaryam@gmail.com"];
+const FAILED_ATTEMPTS_LIMIT = 3;
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth();
@@ -97,7 +97,7 @@ export default function AdminPage() {
         const loggedInEmail = result.user.email;
         console.log("AdminPage: Google sign-in attempt by:", loggedInEmail);
 
-        if (loggedInEmail !== ALLOWED_ADMIN_EMAIL) {
+        if (loggedInEmail !== null && !ALLOWED_ADMIN_EMAILS.includes(loggedInEmail)) {
           console.warn(`AdminPage: Unauthorized login attempt by ${loggedInEmail}. Signing out.`);
           await signOut(auth);
           
@@ -236,7 +236,7 @@ export default function AdminPage() {
   useEffect(() => {
     console.log("AdminPage useEffect: Checking user state. Loading:", authLoading, "User:", user?.email);
 
-    if (!authLoading && user && user.email === ALLOWED_ADMIN_EMAIL) {
+    if (!authLoading && user?.email && ALLOWED_ADMIN_EMAILS.includes(user.email)) {
       console.log("AdminPage useEffect: Authorized admin user found. Fetching prayers from Prisma.");
       setLoadingPrayers(true);
       setError(null);
@@ -268,7 +268,7 @@ export default function AdminPage() {
          console.log("AdminPage useEffect: User not logged in or not authorized admin. Clearing prayers and stopping loading.");
          setPrayers([]);
          setLoadingPrayers(false);
-         if (user && user.email !== ALLOWED_ADMIN_EMAIL) {
+         if (user?.email && !ALLOWED_ADMIN_EMAILS.includes(user.email)) {
              console.warn(`AdminPage useEffect: Unauthorized user (${user.email}) detected after auth check. Forcing logout.`);
              handleLogout(); // Force logout
          }
@@ -376,7 +376,7 @@ export default function AdminPage() {
   }
 
   // Defensive check: if somehow an unauthorized user gets past the login check
-  if (user.email !== ALLOWED_ADMIN_EMAIL) {
+  if (!user.email || !ALLOWED_ADMIN_EMAILS.includes(user.email)) {
       console.warn(`AdminPage: Rendering reached with unauthorized user ${user.email}. Should have been logged out.`);
       return (
            <div className="flex flex-col items-center justify-center min-h-screen bg-destructive/10 p-4 text-destructive">
