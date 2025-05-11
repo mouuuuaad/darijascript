@@ -839,6 +839,7 @@ const HomePage = () => {
               {/* Editor area */}
               <div className="flex-grow relative overflow-hidden">
                 <Editor
+                className=" mt-1"
                   height="100%"
                   defaultLanguage="darijascript"
                   theme={theme === 'dark' ? 'darijaDark' : 'darijaLight'}
@@ -985,6 +986,7 @@ const HomePage = () => {
                 </div>
                 <div className="h-full relative overflow-hidden">
                   <Editor
+                  className="mb-10 mt-1"
                     height="100%"
                     defaultLanguage="darijascript"
                     theme={theme === 'dark' ? 'darijaDark' : 'darijaLight'}
