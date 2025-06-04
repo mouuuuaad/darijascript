@@ -922,7 +922,7 @@ const HomePage = () => {
           {/* Mobile Toolbar */}
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-7">
-              <Button
+              {/* <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setAlgorithmsSidebarOpen(true)}
@@ -930,7 +930,7 @@ const HomePage = () => {
               >
                 <Brain size={14} className="mr-1" /> Algorithms
                 <span className="absolute z-50 dark:bg-green-600/30 border-2 bg-green-600/80 text-green-950 dark:text-white backdrop-blur-md border-green-600 px-2 py-0.5 text-xs -top-3 -right-5 rounded-full">new</span>
-              </Button>
+              </Button> */}
               
               <Dialog>
                 <DialogTrigger asChild>
