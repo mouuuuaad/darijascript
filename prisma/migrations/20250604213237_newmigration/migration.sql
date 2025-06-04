@@ -10,5 +10,14 @@ CREATE TABLE "Invitation" (
     CONSTRAINT "Invitation_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Prayer" (
+    "id" TEXT NOT NULL,
+    "text" TEXT,
+    "submittedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Prayer_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Invitation_token_key" ON "Invitation"("token");
