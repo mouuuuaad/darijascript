@@ -204,7 +204,7 @@ export const WelcomeOverlay: FunctionComponent<WelcomeOverlayProps> = ({ onClose
            </div>
 
            <p className="mt-10 text-xs text-muted-foreground/70">
-              Made by <a href="mailto:mouaadidoufkir2@gmail.com" target="_blank" rel="noopener noreferrer" className="font-semibold text-secondary hover:text-primary transition-colors">MOUAAD IDOUFKIR</a> - Passionate Fullstack Developer
+              Made by <a href="mailto:mouaadidoufkir2@gmail.com" target="_blank" rel="noopener noreferrer" className="font-semibold text-secondary hover:text-primary transition-colors">MOUAAD IDOUFKIR</a> - Passionate Software Developer
            </p>
          </div>
       </div>
