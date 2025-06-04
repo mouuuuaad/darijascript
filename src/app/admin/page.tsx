@@ -61,7 +61,7 @@ const formatDate = (date: Date | null): string => {
   }
 };
 
-const ALLOWED_ADMIN_EMAILS = ["mouaadidoufkir2@gmail.com", "azddoumaryam@gmail.com"];
+const ALLOWED_ADMIN_EMAILS = ["mouaadidoufkir2@gmail.com", "mouaadidoufkir07@gmail.com"];
 const FAILED_ATTEMPTS_LIMIT = 3;
 
 export default function AdminPage() {

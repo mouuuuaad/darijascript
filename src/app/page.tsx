@@ -793,7 +793,7 @@ const HomePage = () => {
                   </Dialog>
                   
                   {/* Algorithms Button */}
-                  <Sheet open={algorithmsSidebarOpen} onOpenChange={setAlgorithmsSidebarOpen}>
+                  {/* <Sheet open={algorithmsSidebarOpen} onOpenChange={setAlgorithmsSidebarOpen}>
                     <SheetTrigger asChild>
                       <Button
                         variant="outline"
@@ -811,7 +811,7 @@ const HomePage = () => {
                         onSelectAlgorithm={loadAlgorithmCode}
                       />
                     </SheetContent>
-                  </Sheet>
+                  </Sheet> */}
                 </div>
                 
                 {/* Status Indicators */}
